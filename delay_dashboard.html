@@ -319,11 +319,21 @@ body{font-family:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;backg
     <button class="bok" onclick="saveSvConfig()">Save</button>
     <button class="bdanger" onclick="clearSvConfig()">Clear</button>
    </div>
-   <div style="display:flex;gap:6px;align-items:center;margin-top:6px">
+   <div style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap">
     <button class="bprim" onclick="testSvConnection()" style="font-size:12px">Test Connection</button>
+    <button class="bprim" onclick="loadSvFleetToMap()" style="font-size:12px;background:#16a34a">Load Fleet to Map</button>
+    <button class="bok" onclick="clearSvFleetFromMap()" style="font-size:11px">Clear Map</button>
     <span id="svMsg" style="font-size:11px;color:var(--muted)"></span>
    </div>
-   <pre id="svTestOut" style="display:none;margin-top:8px;padding:8px;background:#0f172a;color:#e2e8f0;font-size:11px;border-radius:4px;max-height:200px;overflow:auto;white-space:pre-wrap;word-break:break-all"></pre>
+   <div style="display:flex;gap:4px;align-items:center;margin-top:6px;flex-wrap:wrap">
+    <span style="font-size:11px;color:var(--muted)">Inspect raw response:</span>
+    <button class="bok" onclick="inspectSv('sv_categories')" style="font-size:11px;padding:3px 8px">Categories</button>
+    <button class="bok" onclick="inspectSv('sv_snapshot')" style="font-size:11px;padding:3px 8px">Snapshot</button>
+    <button class="bok" onclick="inspectSv('sv_info')" style="font-size:11px;padding:3px 8px">Info</button>
+    <input type="text" id="svShipIdProbe" placeholder="shipId UUID (for Past Track)" style="flex:1;min-width:160px;font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:4px">
+    <button class="bok" onclick="inspectSv('sv_pasttrack',{shipId:document.getElementById('svShipIdProbe').value.trim()})" style="font-size:11px;padding:3px 8px">Past Track</button>
+   </div>
+   <pre id="svTestOut" style="display:none;margin-top:8px;padding:8px;background:#0f172a;color:#e2e8f0;font-size:11px;border-radius:4px;max-height:240px;overflow:auto;white-space:pre-wrap;word-break:break-all"></pre>
   </div>
   <div class="asec" id="vassignSec">
    <h3>?슓 Vessel Assignment <span id="vassignDate" style="font-size:11px;color:var(--muted);font-weight:400;margin-left:8px"></span></h3>
@@ -402,7 +412,7 @@ body{font-family:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;backg
 var CONFIG = {
     appsScriptUrl: localStorage.getItem('pd_surl') || '',
     adminEmail: 'smmoon2030@gmail.com',
-    version: '1.4.4',
+    version: '1.4.5',
     updateUrl: 'https://mustbebecomerichman.github.io/Operation-dashboard/delay_dashboard.html',  // GitHub Pages ??auto-update source
     aisApiKey: '',  // aisstream.io API key — set per-device via Admin Panel (stored in localStorage)
     aisProvider: 'aisstream',  // 'aisstream' | 'datalastic' | 'marinetraffic' | 'vesselfinder'
@@ -2047,9 +2057,123 @@ function callSV(action,params,opts){
         return r.text().then(function(t){
             var data;
             try{data=JSON.parse(t);}catch(_){return {raw:t,httpStatus:r.status};}
-            if(data&&data.error){var e=new Error(data.error); e.detail=data; throw e;}
+            // Proxy-side error: {error: "string"}
+            if(data&&typeof data.error==='string'){var e=new Error(data.error); e.detail=data; throw e;}
+            // SeaVantage envelope error: {error: true, message: "..."}
+            if(data&&data.error===true){var e2=new Error('SeaVantage: '+(data.message||'error')); e2.detail=data; throw e2;}
+            // Auto-unwrap SeaVantage envelope {code, message, error:false, timestamp, response:[...]}
+            if(data&&data.code!==undefined&&Object.prototype.hasOwnProperty.call(data,'response')){
+                return data.response;
+            }
             return data;
         });
+    });
+}
+// ── SEAVANTAGE FLEET RENDERING ───────────────────────────────────────────────
+var svFleetLayer=null;
+var svFleetMarkers={};   // shipId -> L.marker
+function ensureSvLayer(){
+    if(svFleetLayer||!window.map) return svFleetLayer;
+    svFleetLayer=window.L.layerGroup().addTo(window.map);
+    return svFleetLayer;
+}
+// probe — return the first defined value among `names` on `obj`.
+function svProbe(obj,names){
+    if(!obj) return undefined;
+    for(var i=0;i<names.length;i++){
+        var v=obj[names[i]];
+        if(v!==undefined&&v!==null&&v!=='') return v;
+    }
+    return undefined;
+}
+// Defensive flattener — works whether the entry has the /fleet/info shape ({ship:{...}, categoryIds:[]})
+// or the /fleet/snapshot shape ({shipId, position:{...}}). Field names are probed because the
+// exact OpenAPI schema for PositionResponse / ShipExternalWithSVinfoResponse isn't fully published.
+function svFlattenEntry(entry){
+    var ship=entry.ship||entry;
+    var pos=ship.position||entry.position||{};
+    return {
+        shipId:    svProbe(entry,['shipId'])||svProbe(ship,['shipId','id']),
+        name:      svProbe(ship,['shipName','name','vesselName']),
+        imo:       svProbe(ship,['imoNo','imo']),
+        mmsi:      svProbe(ship,['mmsi']),
+        lat:       Number(svProbe(pos,['lat','latitude'])),
+        lng:       Number(svProbe(pos,['lon','lng','longitude'])),
+        heading:   svProbe(pos,['heading','hdg','course']),
+        speed:     svProbe(pos,['speed','sog']),
+        dest:      svProbe(ship,['destination','dest','destinationName'])||svProbe(entry,['destination','dest']),
+        pta:       svProbe(ship,['pta','eta','predictedTimeOfArrival'])||svProbe(entry,['pta','eta']),
+        updatedAt: svProbe(pos,['timestamp','posTime','updatedAt'])
+    };
+}
+function buildSvPopup(v){
+    var rows='';
+    if(v.imo)                       rows+='<tr><td style="color:#64748b;padding-right:10px">IMO</td><td>'+v.imo+'</td></tr>';
+    if(v.mmsi)                      rows+='<tr><td style="color:#64748b;padding-right:10px">MMSI</td><td>'+v.mmsi+'</td></tr>';
+    if(v.speed!==undefined)         rows+='<tr><td style="color:#64748b;padding-right:10px">Speed</td><td><b>'+v.speed+' kn</b></td></tr>';
+    if(v.heading!==undefined)       rows+='<tr><td style="color:#64748b;padding-right:10px">Heading</td><td>'+v.heading+'°</td></tr>';
+    if(v.dest)                      rows+='<tr><td style="color:#64748b;padding-right:10px">Destination</td><td>'+v.dest+'</td></tr>';
+    if(v.pta)                       rows+='<tr><td style="color:#64748b;padding-right:10px">PTA</td><td>'+v.pta+'</td></tr>';
+    var upd=v.updatedAt?'<div style="font-size:10px;color:#94a3b8;margin-top:6px;border-top:1px solid #f1f5f9;padding-top:4px">'+v.updatedAt+'</div>':'';
+    return '<div style="min-width:200px;font-family:sans-serif">'
+        +'<div style="font-weight:700;font-size:14px;color:#16a34a">'+(v.name||'(no name)')+'</div>'
+        +'<div style="font-size:11px;color:#64748b;margin-bottom:6px">SeaVantage · '+(v.shipId||'').slice(0,8)+'</div>'
+        +(rows?'<table style="font-size:12px;border-collapse:collapse">'+rows+'</table>':'')
+        +upd+'</div>';
+}
+function loadSvFleetToMap(){
+    var out=document.getElementById('svTestOut');
+    var msg=document.getElementById('svMsg');
+    msg.style.color='var(--muted)'; msg.textContent='Loading fleet…';
+    if(out){out.style.display='block'; out.textContent='GET sv_info …';}
+    ensureSvLayer();
+    var t0=Date.now();
+    callSV('sv_info').then(function(data){
+        var list=Array.isArray(data)?data:(data&&data.response)||[];
+        var placed=0, skipped=0, samples=[];
+        list.forEach(function(entry){
+            var v=svFlattenEntry(entry);
+            if(samples.length<3) samples.push(v);
+            if(!v.lat||!v.lng||isNaN(v.lat)||isNaN(v.lng)){skipped++; return;}
+            placed++;
+            var icon=makeShipIcon(Number(v.heading)||0,'#16a34a'); // green
+            var html=buildSvPopup(v);
+            var key=v.shipId||('idx'+placed);
+            if(svFleetMarkers[key]){
+                svFleetMarkers[key].setLatLng([v.lat,v.lng]).setIcon(icon).setPopupContent(html);
+            } else {
+                var mk=window.L.marker([v.lat,v.lng],{icon:icon}).bindPopup(html);
+                svFleetLayer.addLayer(mk);
+                svFleetMarkers[key]=mk;
+            }
+        });
+        msg.style.color='var(--ok)';
+        msg.textContent='✓ '+placed+' placed, '+skipped+' skipped ('+(Date.now()-t0)+' ms)';
+        if(out) out.textContent='Total entries: '+list.length+'\nPlaced: '+placed+'\nSkipped (no position): '+skipped+'\n\nFirst 3 parsed entries:\n'+JSON.stringify(samples,null,2);
+    }).catch(function(err){
+        msg.style.color='var(--danger)';
+        msg.textContent='✗ '+err.message;
+        if(out) out.textContent=String(err.stack||err.message)+(err.detail?'\n\n'+JSON.stringify(err.detail,null,2):'');
+    });
+}
+function clearSvFleetFromMap(){
+    if(svFleetLayer) svFleetLayer.clearLayers();
+    svFleetMarkers={};
+    var msg=document.getElementById('svMsg'); if(msg){msg.style.color='var(--muted)'; msg.textContent='Fleet cleared from map';}
+    var out=document.getElementById('svTestOut'); if(out){out.style.display='none'; out.textContent='';}
+}
+function inspectSv(action,extraParams){
+    var out=document.getElementById('svTestOut');
+    var msg=document.getElementById('svMsg');
+    msg.style.color='var(--muted)'; msg.textContent='Calling '+action+'…';
+    out.style.display='block'; out.textContent='GET '+action+' …';
+    var t0=Date.now();
+    callSV(action,extraParams||{}).then(function(data){
+        msg.style.color='var(--ok)'; msg.textContent='✓ '+(Date.now()-t0)+' ms';
+        out.textContent=JSON.stringify(data,null,2);
+    }).catch(function(err){
+        msg.style.color='var(--danger)'; msg.textContent='✗ '+err.message;
+        out.textContent=String(err.stack||err.message)+(err.detail?'\n\n'+JSON.stringify(err.detail,null,2):'');
     });
 }
 function testSvConnection(){
