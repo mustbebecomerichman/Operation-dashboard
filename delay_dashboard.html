@@ -198,7 +198,7 @@ body{font-family:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;backg
    <input type="email" id="emailIn" placeholder="Email address" required autocomplete="email">
    <button type="submit" class="msub">Sign In</button>
   </form>
-  <div class="hint">Default admin: smmoon2030@gmail.com<br>Add users in Admin Panel</div>
+  <div class="hint">Contact your administrator to be added as a user</div>
  </div>
 </div>
 
@@ -383,9 +383,9 @@ body{font-family:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;backg
 var CONFIG = {
     appsScriptUrl: localStorage.getItem('pd_surl') || '',
     adminEmail: 'smmoon2030@gmail.com',
-    version: '1.4.1',
+    version: '1.4.2',
     updateUrl: 'https://mustbebecomerichman.github.io/Operation-dashboard/delay_dashboard.html',  // GitHub Pages ??auto-update source
-    aisApiKey: 'f235191a6371499b9d92425922f53f6509fc36a7',  // aisstream.io API key
+    aisApiKey: '',  // aisstream.io API key — set per-device via Admin Panel (stored in localStorage)
     aisProvider: 'aisstream',  // 'aisstream' | 'datalastic' | 'marinetraffic' | 'vesselfinder'
     refreshMs: 5 * 60 * 1000
 };
