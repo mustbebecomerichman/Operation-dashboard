@@ -306,6 +306,25 @@ body{font-family:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;backg
    </div>
    <div id="surlStat" style="font-size:11px;color:var(--muted)"></div>
   </div>
+  <div class="asec">
+   <h3>SeaVantage Insight Integration</h3>
+   <p style="font-size:12px;color:var(--muted);margin-bottom:9px">
+    Fleet/position data via a separate Apps Script proxy (see <code>apps-script/seavantage-proxy.gs</code> in the repo for setup). The Dashboard Token must match the <code>DASHBOARD_TOKEN</code> in the proxy's Script Properties.
+   </p>
+   <div style="display:flex;gap:6px;margin-bottom:6px">
+    <input type="url" id="svProxyUrl" placeholder="https://script.google.com/macros/s/.../exec" style="flex:1;font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:4px">
+   </div>
+   <div style="display:flex;gap:6px;margin-bottom:6px">
+    <input type="text" id="svToken" placeholder="Dashboard token (paste the random string)" style="flex:1;font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:4px">
+    <button class="bok" onclick="saveSvConfig()">Save</button>
+    <button class="bdanger" onclick="clearSvConfig()">Clear</button>
+   </div>
+   <div style="display:flex;gap:6px;align-items:center;margin-top:6px">
+    <button class="bprim" onclick="testSvConnection()" style="font-size:12px">Test Connection</button>
+    <span id="svMsg" style="font-size:11px;color:var(--muted)"></span>
+   </div>
+   <pre id="svTestOut" style="display:none;margin-top:8px;padding:8px;background:#0f172a;color:#e2e8f0;font-size:11px;border-radius:4px;max-height:200px;overflow:auto;white-space:pre-wrap;word-break:break-all"></pre>
+  </div>
   <div class="asec" id="vassignSec">
    <h3>?슓 Vessel Assignment <span id="vassignDate" style="font-size:11px;color:var(--muted);font-weight:400;margin-left:8px"></span></h3>
    <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Update each vessel's assigned route and save. Recommended every Monday.</p>
@@ -383,10 +402,12 @@ body{font-family:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;backg
 var CONFIG = {
     appsScriptUrl: localStorage.getItem('pd_surl') || '',
     adminEmail: 'smmoon2030@gmail.com',
-    version: '1.4.3',
+    version: '1.4.4',
     updateUrl: 'https://mustbebecomerichman.github.io/Operation-dashboard/delay_dashboard.html',  // GitHub Pages ??auto-update source
     aisApiKey: '',  // aisstream.io API key — set per-device via Admin Panel (stored in localStorage)
     aisProvider: 'aisstream',  // 'aisstream' | 'datalastic' | 'marinetraffic' | 'vesselfinder'
+    seavantageProxyUrl: localStorage.getItem('pd_svurl') || '',   // Apps Script Web App URL for SeaVantage proxy
+    seavantageToken: localStorage.getItem('pd_svtok') || '',      // matches DASHBOARD_TOKEN in proxy Script Properties
     refreshMs: 5 * 60 * 1000
 };
 
@@ -1725,6 +1746,13 @@ function showAdmin(){
     CONFIG.aisApiKey=akey; CONFIG.aisProvider=aprov;
     var akEl=document.getElementById('aisApiKey'); if(akEl)akEl.value=akey;
     var apEl=document.getElementById('aisProvider'); if(apEl){apEl.value=aprov; onAisProviderChange();}
+    var svUrl=localStorage.getItem('pd_svurl')||'';
+    var svTok=localStorage.getItem('pd_svtok')||'';
+    CONFIG.seavantageProxyUrl=svUrl; CONFIG.seavantageToken=svTok;
+    var svUrlEl=document.getElementById('svProxyUrl'); if(svUrlEl)svUrlEl.value=svUrl;
+    var svTokEl=document.getElementById('svToken'); if(svTokEl)svTokEl.value=svTok;
+    var svMsgEl=document.getElementById('svMsg');
+    if(svMsgEl)svMsgEl.textContent=(svUrl&&svTok)?'Configured':'Not configured';
     var uurl=localStorage.getItem('pd_uurl')||'';
     CONFIG.updateUrl=uurl;
     var uuEl=document.getElementById('updateUrl');
@@ -1974,6 +2002,83 @@ function clearScriptUrl(){
     document.getElementById('surlStat').textContent='Cleared (Offline 紐⑤뱶)';
     document.getElementById('lstat').textContent='Offline 紐⑤뱶';
     document.getElementById('ldot').className='live-dot';
+}
+
+// ── SEAVANTAGE PROXY ─────────────────────────────────────────────────────────
+function saveSvConfig(){
+    var url=document.getElementById('svProxyUrl').value.trim();
+    var tok=document.getElementById('svToken').value.trim();
+    CONFIG.seavantageProxyUrl=url; CONFIG.seavantageToken=tok;
+    if(url)localStorage.setItem('pd_svurl',url); else localStorage.removeItem('pd_svurl');
+    if(tok)localStorage.setItem('pd_svtok',tok); else localStorage.removeItem('pd_svtok');
+    var msg=document.getElementById('svMsg');
+    msg.style.color='var(--ok)';
+    msg.textContent=(url&&tok)?'Saved.':'Cleared.';
+    setTimeout(function(){ msg.textContent=(url&&tok)?'Configured':'Not configured'; msg.style.color='var(--muted)'; },2500);
+}
+function clearSvConfig(){
+    document.getElementById('svProxyUrl').value='';
+    document.getElementById('svToken').value='';
+    CONFIG.seavantageProxyUrl=''; CONFIG.seavantageToken='';
+    localStorage.removeItem('pd_svurl'); localStorage.removeItem('pd_svtok');
+    var msg=document.getElementById('svMsg');
+    msg.style.color='var(--muted)'; msg.textContent='Not configured';
+    var out=document.getElementById('svTestOut'); if(out){out.style.display='none'; out.textContent='';}
+}
+// Calls the SeaVantage proxy.  Returns a Promise.  Adds action+token automatically.
+// For POST/DELETE, pass {body: ...} in opts; uses text/plain to avoid a CORS preflight on Apps Script.
+function callSV(action,params,opts){
+    if(!CONFIG.seavantageProxyUrl||!CONFIG.seavantageToken){
+        return Promise.reject(new Error('SeaVantage proxy not configured (Admin Panel)'));
+    }
+    params=params||{}; opts=opts||{};
+    var qs=['action='+encodeURIComponent(action),'token='+encodeURIComponent(CONFIG.seavantageToken)];
+    Object.keys(params).forEach(function(k){
+        if(params[k]!==undefined&&params[k]!==null&&params[k]!=='')qs.push(k+'='+encodeURIComponent(params[k]));
+    });
+    var url=CONFIG.seavantageProxyUrl+(CONFIG.seavantageProxyUrl.indexOf('?')>=0?'&':'?')+qs.join('&');
+    var fetchOpts={cache:'no-store'};
+    if(opts.body!==undefined){
+        fetchOpts.method=opts.method||'POST';
+        fetchOpts.headers={'Content-Type':'text/plain;charset=utf-8'};
+        fetchOpts.body=typeof opts.body==='string'?opts.body:JSON.stringify(opts.body);
+    }
+    return fetch(url,fetchOpts).then(function(r){
+        return r.text().then(function(t){
+            var data;
+            try{data=JSON.parse(t);}catch(_){return {raw:t,httpStatus:r.status};}
+            if(data&&data.error){var e=new Error(data.error); e.detail=data; throw e;}
+            return data;
+        });
+    });
+}
+function testSvConnection(){
+    var out=document.getElementById('svTestOut');
+    var msg=document.getElementById('svMsg');
+    var url=document.getElementById('svProxyUrl').value.trim();
+    var tok=document.getElementById('svToken').value.trim();
+    if(!url||!tok){
+        msg.style.color='var(--danger)';
+        msg.textContent='Enter URL and Token first, then Save.';
+        return;
+    }
+    // Use the values currently in the input boxes (in case user hasn't hit Save yet).
+    var prevUrl=CONFIG.seavantageProxyUrl, prevTok=CONFIG.seavantageToken;
+    CONFIG.seavantageProxyUrl=url; CONFIG.seavantageToken=tok;
+    msg.style.color='var(--muted)'; msg.textContent='Testing…';
+    out.style.display='block'; out.textContent='GET sv_categories …';
+    var t0=Date.now();
+    callSV('sv_categories').then(function(data){
+        msg.style.color='var(--ok)';
+        msg.textContent='✓ '+(Date.now()-t0)+' ms';
+        out.textContent=JSON.stringify(data,null,2);
+    }).catch(function(err){
+        msg.style.color='var(--danger)';
+        msg.textContent='✗ '+err.message;
+        out.textContent=String(err.stack||err.message)+(err.detail?'\n\n'+JSON.stringify(err.detail,null,2):'');
+    }).then(function(){
+        CONFIG.seavantageProxyUrl=prevUrl; CONFIG.seavantageToken=prevTok;
+    });
 }
 
 window.onload=initAuth;
