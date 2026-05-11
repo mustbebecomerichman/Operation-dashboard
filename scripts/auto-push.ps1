@@ -73,6 +73,17 @@ $fileList
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 "@
 
+# git writes status messages to stderr; suppress strict-mode escalation for native calls.
+$priorEAP = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
 git commit -m $body | Out-Null
-git push origin main 2>&1 | ForEach-Object { Write-Host "[auto-push] $_" }
+$pushOutput = git push origin main 2>&1
+$pushExit = $LASTEXITCODE
+$ErrorActionPreference = $priorEAP
+
+$pushOutput | ForEach-Object { Write-Host "[auto-push] $_" }
+if ($pushExit -ne 0) {
+    Write-Error "[auto-push] git push failed with exit $pushExit"
+    exit $pushExit
+}
 Write-Host "[auto-push] done$( if ($bumpedVer) { " (v$bumpedVer)" } )"
