@@ -4,7 +4,7 @@ Port Delay Monitoring Dashboard — single-file HTML PWA with Leaflet map, port/
 
 ## Live
 
-- **Dashboard:** https://smmoon2030.github.io/Operation-dashboard/delay_dashboard.html
+- **Dashboard:** https://mustbebecomerichman.github.io/Operation-dashboard/delay_dashboard.html
 - **Version source of truth:** `delay_dashboard.html` (`CONFIG.version`)
 
 The deployed page is served by GitHub Pages straight from `main`. Pushes to `main` are picked up within ~1 minute.
@@ -19,7 +19,7 @@ The deployed page is served by GitHub Pages straight from `main`. Pushes to `mai
 ## Working on a new machine
 
 ```bash
-git clone https://github.com/smmoon2030/Operation-dashboard.git
+git clone https://github.com/mustbebecomerichman/Operation-dashboard.git
 cd Operation-dashboard
 # Operational data files (xls/csv/xlsx) are git-ignored and live only on the
 # original machine. Copy them in by hand if needed, or remove the matching
