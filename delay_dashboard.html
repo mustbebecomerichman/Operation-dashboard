@@ -383,7 +383,7 @@ body{font-family:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;backg
 var CONFIG = {
     appsScriptUrl: localStorage.getItem('pd_surl') || '',
     adminEmail: 'smmoon2030@gmail.com',
-    version: '1.4.2',
+    version: '1.4.3',
     updateUrl: 'https://mustbebecomerichman.github.io/Operation-dashboard/delay_dashboard.html',  // GitHub Pages ??auto-update source
     aisApiKey: '',  // aisstream.io API key — set per-device via Admin Panel (stored in localStorage)
     aisProvider: 'aisstream',  // 'aisstream' | 'datalastic' | 'marinetraffic' | 'vesselfinder'
@@ -456,8 +456,8 @@ var map=null, sess=null, routeLayer=null, mks=[], liveD={}, tab='port', rtimer=n
 function initAuth(){
     var u=JSON.parse(localStorage.getItem('pd_u')||'{}');
     // Always ensure the default admin account exists
-    if(!u['smmoon2030@gmail.com']){
-        u['smmoon2030@gmail.com']={role:'admin',name:'Admin'};
+    if(!u[CONFIG.adminEmail]){
+        u[CONFIG.adminEmail]={role:'admin',name:'Admin'};
         localStorage.setItem('pd_u',JSON.stringify(u));
     }
     var s=localStorage.getItem('pd_ses');
@@ -1855,14 +1855,14 @@ function syncUsersFromSheet(){
         }
         var u=JSON.parse(localStorage.getItem('pd_u')||'{}');
         // Always keep admin
-        var adminEntry=u['smmoon2030@gmail.com'];
+        var adminEntry=u[CONFIG.adminEmail];
         data.users.forEach(function(row){
             var em=(row.email||'').toLowerCase().trim();
             var role=(row.role||'reporter').toLowerCase();
             var name=row.name||em.split('@')[0];
             if(em)u[em]={role:role,name:name};
         });
-        if(adminEntry)u['smmoon2030@gmail.com']=adminEntry;
+        if(adminEntry)u[CONFIG.adminEmail]=adminEntry;
         localStorage.setItem('pd_u',JSON.stringify(u));
         renderUsers();
         document.getElementById('userSyncMsg').textContent='??Synced '+data.users.length+' user(s)';
