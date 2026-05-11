@@ -1,0 +1,24 @@
+# Operational data files — excluded from public repo by default.
+# To track a specific file: `git add -f <filename>`, or remove the relevant line below.
+*.xls
+*.xlsx
+*.csv
+*.docx
+*.zip
+
+# Folder with route CSVs
+passage plan/
+
+# Local-only Claude config (machine-specific paths, auth tokens, etc.)
+.claude/settings.local.json
+
+# OS / editor noise
+Thumbs.db
+.DS_Store
+*.swp
+*~
+desktop.ini
+.~lock.*#
+
+# Logs from auto-push
+.auto-push.log
