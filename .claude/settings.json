@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell -ExecutionPolicy Bypass -NoProfile -File \"${CLAUDE_PROJECT_DIR}\\scripts\\auto-push.ps1\""
+            "command": "node \"${CLAUDE_PROJECT_DIR}/scripts/auto-push.js\""
           }
         ]
       }

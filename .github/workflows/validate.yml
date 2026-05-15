@@ -1,0 +1,30 @@
+name: validate
+
+# Catches the class of bugs that once silently disabled the entire dashboard:
+# mojibake-induced syntax errors in inline <script> blocks.  If this job fails,
+# do NOT merge — the deployed page would crash on load.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    name: JS syntax check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate inline JS in HTML + Apps Script .gs files
+        run: node scripts/validate-html-js.js

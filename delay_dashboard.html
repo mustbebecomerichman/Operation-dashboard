@@ -211,7 +211,7 @@ body{font-family:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;backg
      <div id="vmName" style="font-size:18px;font-weight:700;line-height:1.2"></div>
      <div id="vmSvc" style="font-size:12px;opacity:.85;margin-top:3px"></div>
     </div>
-    <button onclick="closeVesselModal()" style="background:rgba(255,255,255,.2);border:none;color:#fff;width:28px;height:28px;border-radius:50%;font-size:16px;cursor:pointer;line-height:1">??/button>
+    <button onclick="closeVesselModal()" style="background:rgba(255,255,255,.2);border:none;color:#fff;width:28px;height:28px;border-radius:50%;font-size:16px;cursor:pointer;line-height:1">✕</button>
    </div>
   </div>
   <div style="padding:16px 20px 20px;overflow-y:auto;max-height:70vh">
@@ -226,9 +226,9 @@ body{font-family:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;backg
 </div>
 <div class="ov" id="adminOv" style="display:none">
  <div class="amodal">
-  <h2 style="color:var(--accent);margin-bottom:18px">?숋툘 Admin Panel</h2>
+  <h2 style="color:var(--accent);margin-bottom:18px">⚙️ Admin Panel</h2>
   <div class="asec">
-   <h3>?뫁 User Management</h3>
+   <h3>👥 User Management</h3>
    <div class="urow">
     <input type="email" id="nuEmail" placeholder="Email address" style="flex:2">
     <input type="text" id="nuName" placeholder="Name" style="flex:1.2">
@@ -237,20 +237,20 @@ body{font-family:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;backg
    </div>
    <div id="userList" style="max-height:220px;overflow-y:auto;margin-top:8px"></div>
    <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
-    <button class="bok" onclick="exportUsers()" style="font-size:11px">?뱾 Export</button>
-    <button class="bok" onclick="importUsersPrompt()" style="font-size:11px">?뱿 Import</button>
-    <button class="bok" onclick="syncUsersFromSheet()" style="font-size:11px">?봽 Sync from Sheet</button>
+    <button class="bok" onclick="exportUsers()" style="font-size:11px">📤 Export</button>
+    <button class="bok" onclick="importUsersPrompt()" style="font-size:11px">📥 Import</button>
+    <button class="bok" onclick="syncUsersFromSheet()" style="font-size:11px">🔄 Sync from Sheet</button>
     <span id="userSyncMsg" style="font-size:11px;color:var(--ok);align-self:center"></span>
    </div>
    <p style="font-size:11px;color:var(--muted);margin-top:6px">
-    ?뮕 <b>Sync from Sheet</b>: Add a "Users" sheet to your Google Sheet with columns: email, name, role (viewer/reporter/admin)
+    💡 <b>Sync from Sheet</b>: Add a "Users" sheet to your Google Sheet with columns: email, name, role (viewer/reporter/admin)
    </p>
   </div>
   <div class="asec">
-   <h3>?봽 App Version &amp; Updates</h3>
+   <h3>🔄 App Version &amp; Updates</h3>
    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
     <span style="font-size:12px;color:var(--muted)">Current version: <b id="curVerTxt"></b></span>
-    <span id="updateBadge" style="display:none;font-size:11px;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:10px;border:1px solid #fcd34d">?넅 Update available</span>
+    <span id="updateBadge" style="display:none;font-size:11px;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:10px;border:1px solid #fcd34d">🔔 Update available</span>
    </div>
    <p style="font-size:12px;color:var(--muted);margin-bottom:9px">
     Set an <b>Update URL</b> pointing to the hosted latest version of this file.<br>
@@ -261,42 +261,42 @@ body{font-family:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;backg
     <button class="bok" onclick="saveUpdateUrl()">Save</button>
    </div>
    <div style="display:flex;gap:6px;margin-top:8px">
-    <button class="bprim" onclick="checkForUpdate(true)">?뵇 Check Now</button>
+    <button class="bprim" onclick="checkForUpdate(true)">🔍 Check Now</button>
     <button class="bok" onclick="forceUpdate()" style="font-size:11px">燧뉛툘 Download Latest</button>
     <span id="updateMsg" style="font-size:11px;color:var(--ok);align-self:center"></span>
    </div>
   </div>
   <div class="asec">
-   <h3>?쎇截?AIS Vessel Tracking</h3>
+   <h3>🛰️AIS Vessel Tracking</h3>
    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">
     Show live vessel positions on the map when a route is selected.<br>
-    <b style="color:var(--ok)">狩?aisstream.io (Free)</b> ??WebSocket, works directly in browser without CORS issues.<br>
-    <a href="https://aisstream.io" target="_blank" style="color:var(--pri)">Register free at aisstream.io</a> ??copy your API Key below.
+    <b style="color:var(--ok)">🌐 aisstream.io (Free)</b> — WebSocket, works directly in browser without CORS issues.<br>
+    <a href="https://aisstream.io" target="_blank" style="color:var(--pri)">Register free at aisstream.io</a> → copy your API Key below.
    </p>
    <div style="display:flex;gap:6px;margin-bottom:6px">
     <select id="aisProvider" onchange="onAisProviderChange()" style="font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:4px">
-     <option value="aisstream">aisstream.io (Free 狩?</option>
+     <option value="aisstream">aisstream.io (Free 🌐)</option>
      <option value="datalastic">Datalastic (Paid)</option>
      <option value="marinetraffic">MarineTraffic (Paid)</option>
      <option value="vesselfinder">VesselFinder (Paid)</option>
     </select>
-    <input type="text" id="aisApiKey" placeholder="Paste API key here?? style="flex:1;font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:4px">
+    <input type="text" id="aisApiKey" placeholder="Paste API key here…" style="flex:1;font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:4px">
     <button class="bok" onclick="saveAisConfig()">Save</button>
    </div>
    <div id="aisPaidNote" style="display:none;font-size:11px;color:#92400e;background:#fef3c7;padding:6px 8px;border-radius:4px;margin-bottom:6px">
-    ?좑툘 Paid REST APIs are blocked by CORS in the browser. A Google Apps Script proxy is required for these to work. <b>aisstream.io is recommended.</b>
+    ⚠️ Paid REST APIs are blocked by CORS in the browser. A Google Apps Script proxy is required for these to work. <b>aisstream.io is recommended.</b>
    </div>
    <div style="display:flex;gap:6px;align-items:center">
-    <button class="bprim" onclick="testAisApi()" style="font-size:12px">?뵇 Test Connection</button>
+    <button class="bprim" onclick="testAisApi()" style="font-size:12px">🔍 Test Connection</button>
     <button class="bok" onclick="clearAisConfig()" style="font-size:11px">Clear</button>
     <span id="aisMsg" style="font-size:11px;color:var(--ok)"></span>
    </div>
    <p style="font-size:11px;color:var(--muted);margin-top:6px">
-    ?뮕 Once saved, select any route ??vessel positions appear on the map as arrow icons (click for details).
+    💡 Once saved, select any route → vessel positions appear on the map as arrow icons (click for details).
    </p>
   </div>
   <div class="asec">
-   <h3>?뵕 Google Apps Script Integration</h3>
+   <h3>🔗 Google Apps Script Integration</h3>
    <p style="font-size:12px;color:var(--muted);margin-bottom:9px">When an Apps Script URL is set, live delay data is fetched from Google Sheets and submitted entries are saved there.</p>
    <div class="surl-row">
     <input type="url" id="scriptUrl" placeholder="https://script.google.com/macros/s/.../exec">
@@ -335,7 +335,7 @@ body{font-family:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;backg
    <pre id="svTestOut" style="display:none;margin-top:8px;padding:8px;background:#0f172a;color:#e2e8f0;font-size:11px;border-radius:4px;max-height:240px;overflow:auto;white-space:pre-wrap;word-break:break-all"></pre>
   </div>
   <div class="asec" id="vassignSec">
-   <h3>?슓 Vessel Assignment <span id="vassignDate" style="font-size:11px;color:var(--muted);font-weight:400;margin-left:8px"></span></h3>
+   <h3>🚢 Vessel Assignment <span id="vassignDate" style="font-size:11px;color:var(--muted);font-weight:400;margin-left:8px"></span></h3>
    <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Update each vessel's assigned route and save. Recommended every Monday.</p>
    <div style="max-height:320px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:8px">
     <table style="width:100%;border-collapse:collapse;font-size:12px" id="vassignTable">
@@ -349,7 +349,7 @@ body{font-family:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;backg
     </table>
    </div>
    <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
-    <button class="bprim" onclick="saveVesselAssign()">?뮶 Save</button>
+    <button class="bprim" onclick="saveVesselAssign()">💾 Save</button>
     <button class="bok" onclick="resetVesselAssign()" style="font-size:12px">Reset</button>
     <span id="vassignMsg" style="font-size:11px;color:var(--ok)"></span>
    </div>
@@ -365,9 +365,10 @@ body{font-family:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;backg
  <div class="hdr-title">Operation Dashboard</div>
  <div class="hdr-right">
   <div class="live-pill"><div class="live-dot" id="ldot"></div><span id="lstat">Offline</span></div>
+  <a class="hdr-btn" href="hrci.html" style="text-decoration:none">HRCI Index</a>
   <div class="hdr-btn" id="uinfo" style="cursor:default"></div>
-  <button class="hdr-btn" id="adminBtn" style="display:none" onclick="showAdmin()">?숋툘 Admin</button>
-  <button id="pwaInstallBtn" class="hdr-btn" onclick="installPWA()" style="display:none">?벒 Install App</button><button class="hdr-btn" onclick="doLogout()">Sign Out</button>
+  <button class="hdr-btn" id="adminBtn" style="display:none" onclick="showAdmin()">⚙️ Admin</button>
+  <button id="pwaInstallBtn" class="hdr-btn" onclick="installPWA()" style="display:none">📱 Install App</button><button class="hdr-btn" onclick="doLogout()">Sign Out</button>
  </div>
 </div>
 
@@ -388,14 +389,14 @@ body{font-family:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;backg
  <div class="mapc">
   <div id="map"></div>
   <div class="rpanel" id="rpanel">
-   <button class="rpclose" onclick="closeRP()">??/button>
+   <button class="rpclose" onclick="closeRP()">✕</button>
    <div class="rph">
     <div class="rpt" id="rptitle"></div>
     <div class="rpm" id="rpmeta"></div>
    </div>
    <div id="aisStatusBar" style="display:none;font-size:11px;padding:4px 10px 4px 12px;background:#f0f9ff;border-bottom:1px solid #bae6fd;display:flex;align-items:center;gap:6px">
     <span id="aisStatusTxt" style="flex:1"></span>
-    <button id="aisRetryBtn" onclick="retryAis()" style="display:none;font-size:10px;padding:2px 7px;border:1px solid #7dd3fc;background:#e0f2fe;border-radius:4px;cursor:pointer;white-space:nowrap">??Retry</button>
+    <button id="aisRetryBtn" onclick="retryAis()" style="display:none;font-size:10px;padding:2px 7px;border:1px solid #7dd3fc;background:#e0f2fe;border-radius:4px;cursor:pointer;white-space:nowrap">↻ Retry</button>
    </div>
    <div class="rpbody" id="rpbody"></div>
   </div>
@@ -411,7 +412,7 @@ body{font-family:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;backg
 var CONFIG = {
     appsScriptUrl: localStorage.getItem('pd_surl') || '',
     adminEmail: 'smmoon@heungaline.com',
-    version: '1.4.7',
+    version: '1.4.8',
     updateUrl: 'https://mustbebecomerichman.github.io/Operation-dashboard/delay_dashboard.html',  // GitHub Pages ??auto-update source
     aisApiKey: '',  // aisstream.io API key — set per-device via Admin Panel (stored in localStorage)
     aisProvider: 'aisstream',  // 'aisstream' | 'datalastic' | 'marinetraffic' | 'vesselfinder'
@@ -562,22 +563,22 @@ function dcol(d){return d>=8?'var(--danger)':d>=2?'var(--warn)':'var(--ok)';}
 
 function fetchLive(){
     if(!CONFIG.appsScriptUrl){
-        document.getElementById('lstat').textContent='Offline 紐⑤뱶';
+        document.getElementById('lstat').textContent='Offline mode';
         document.getElementById('ldot').className='live-dot';
         return;
     }
-    document.getElementById('lstat').textContent='?곌껐 以?..';
+    document.getElementById('lstat').textContent='Connecting…';
     fetch(CONFIG.appsScriptUrl+'?action=getDelays',{cache:'no-store'})
     .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
     .then(function(data){
         if(data.delays) liveD=data.delays;
         var ts=data.lastUpdated?new Date(data.lastUpdated).toLocaleTimeString('ko-KR'):new Date().toLocaleTimeString('ko-KR');
-        document.getElementById('lstat').textContent='?쇱씠釉?쨌 '+ts;
+        document.getElementById('lstat').textContent='Live · '+ts;
         document.getElementById('ldot').className='live-dot on';
         updateKPI(); if(tab==='port')updatePortCards();
     })
     .catch(function(){
-        document.getElementById('lstat').textContent='?곌껐 ?ㅽ뙣';
+        document.getElementById('lstat').textContent='Connection failed';
         document.getElementById('ldot').className='live-dot err';
     });
 }
@@ -626,9 +627,9 @@ function renderPortTab(){
     var copts=Object.keys(cc).sort().map(function(c){return '<option value="'+c+'">'+c+'</option>';}).join('');
     // Port dropdown: unique port_codes sorted by name
     var popts=Object.keys(pp).sort(function(a,b){return pp[a].localeCompare(pp[b]);})
-        .map(function(pc){return '<option value="'+pc+'">'+pc+' ??'+pp[pc]+'</option>';}).join('');
+        .map(function(pc){return '<option value="'+pc+'">'+pc+' → '+pp[pc]+'</option>';}).join('');
     document.getElementById('scont').innerHTML=
-        '<input class="ssearch" id="ps" placeholder="?뵇 Search port..." oninput="updatePortCards()">'+
+        '<input class="ssearch" id="ps" placeholder="🔍 Search port..." oninput="updatePortCards()">'+
         '<div class="frow" style="flex-wrap:wrap;gap:5px">'+
         '<select id="cf" onchange="updatePortCards()"><option value="">All Countries</option>'+copts+'</select>'+
         '<select id="pf" onchange="updatePortCards()"><option value="">All Ports</option>'+popts+'</select>'+
@@ -663,8 +664,8 @@ function updatePortCards(){
         }).join('');
         h+='<div class="pc" data-dp="'+t.depot+'" onclick="focusPort(this.dataset.dp)">'+
            '<div class="pcdot '+ds+'"></div>'+
-           '<div class="pcb"><div class="pcn">'+(t.country||'')+t.depot+' ??'+t.port_name+'</div>'+
-           '<div class="pcs">'+t.country+' 쨌 '+t.lat.toFixed(2)+'째N '+t.lon.toFixed(2)+'째E</div>'+
+           '<div class="pcb"><div class="pcn">'+(t.country||'')+t.depot+' → '+t.port_name+'</div>'+
+           '<div class="pcs">'+t.country+' · '+t.lat.toFixed(2)+'°N '+t.lon.toFixed(2)+'°E</div>'+
            (svcBadges?'<div class="pc-svcs">'+svcBadges+'</div>':'')+
            '</div>'+
            '<div class="pcd"><div class="dv '+ds+'">'+d.toFixed(1)+'h</div>'+
@@ -688,7 +689,7 @@ function renderServiceTab(){
     SVC_INFO.forEach(function(s){rg[s.region]=1;});
     var ropts=Object.keys(rg).sort().map(function(r){return '<option value="'+r+'">'+r+'</option>';}).join('');
     document.getElementById('scont').innerHTML=
-        '<input class="ssearch" id="svs" placeholder="?뵇 Search routes..." oninput="updateSvcCards()">'+
+        '<input class="ssearch" id="svs" placeholder="🔍 Search routes..." oninput="updateSvcCards()">'+
         '<div class="frow"><select id="rgf" onchange="updateSvcCards()"><option value="">All Regions</option>'+ropts+'</select></div>'+
         '<div id="svcCards"></div>';
     updateSvcCards();
@@ -711,11 +712,11 @@ function updateSvcCards(){
         var pts=ro&&ro.ports?ro.ports.slice(0,5).join(' > ')+(ro.ports.length>5?' …':''):'No port data';
         var dist=DIST[s.svc]?'<span class="sc-dist">'+DIST[s.svc].toLocaleString()+' NM</span>':'';
         var vcount=VESSELS[s.svc]?VESSELS[s.svc].length:0;
-        var vcbadge=vcount?'<span class="sc-vcount">?슓 '+vcount+'泥?/span>':'';
+        var vcbadge=vcount?'<span class="sc-vcount">🚢 '+vcount+' ships</span>':'';
         h+='<div class="sc" style="border-left-color:'+col+'" data-sv="'+s.svc+'" onclick="showRoute(this.dataset.sv)">'+
            '<div class="sch"><span class="scn">'+s.svc+'</span><span class="scr" style="background:'+col+'">'+s.region+'</span>'+dist+vcbadge+'</div>'+
            '<div class="scp">'+pts+'</div>'+
-           '<div class="scm">Mgr: '+s.manager+(s.backup?' 쨌 Dep: '+s.backup:'')+'</div></div>';
+           '<div class="scm">Mgr: '+s.manager+(s.backup?' · Dep: '+s.backup:'')+'</div></div>';
     });
     document.getElementById('svcCards').innerHTML=h||'<div class="nodata">No results found</div>';
 }
@@ -754,13 +755,13 @@ function onDepotChange(){
         return '<span class="svc-badge" style="background:'+c+'22;color:'+c+';border:1px solid '+c+'55">'+svc+'</span>';
     }).join('');
     svcSel.innerHTML=svcs.map(function(svc){
-        var ro=ROUTES[svc];return'<option value="'+svc+'">'+svc+(ro?' 쨌 '+(ro.name||ro.region||''):'')+'</option>';
+        var ro=ROUTES[svc];return'<option value="'+svc+'">'+svc+(ro?' · '+(ro.name||ro.region||''):'')+'</option>';
     }).join('');
     if(svcs.length===1)svcSel.value=svcs[0];
 }
 function renderUpdateTab(){
     if(sess.role==='viewer'){
-        document.getElementById('scont').innerHTML='<div class="nodata" style="color:var(--danger)">?좑툘 Reporter role or higher required</div>';
+        document.getElementById('scont').innerHTML='<div class="nodata" style="color:var(--danger)">⚠️ Reporter role or higher required</div>';
         return;
     }
     // Unique ports sorted by name
@@ -771,16 +772,16 @@ function renderUpdateTab(){
     var portopts=Object.keys(portMap).sort(function(a,b){
         return portMap[a].name.localeCompare(portMap[b].name);
     }).map(function(pc){
-        return '<option value="'+pc+'">'+portMap[pc].country+' '+pc+' ??'+portMap[pc].name+'</option>';
+        return '<option value="'+pc+'">'+portMap[pc].country+' '+pc+' → '+portMap[pc].name+'</option>';
     }).join('');
     document.getElementById('scont').innerHTML=
         '<div class="uform">'+
-        '<div class="reporter-pill">?뫀 Reporter: <span class="rp-em">'+sess.email+'</span></div>'+
-        '<div class="fg"><label>??Port</label>'+
-          '<select id="psel" onchange="onPortChange()"><option value="">Select port??/option>'+portopts+'</select>'+
+        '<div class="reporter-pill">👤 Reporter: <span class="rp-em">'+sess.email+'</span></div>'+
+        '<div class="fg"><label>Port</label>'+
+          '<select id="psel" onchange="onPortChange()"><option value="">Select port…</option>'+portopts+'</select>'+
         '</div>'+
-        '<div class="fg" id="terminalFg" style="display:none"><label>??Terminal</label>'+
-          '<select id="dsel"><option value="">Select terminal??/option></select>'+
+        '<div class="fg" id="terminalFg" style="display:none"><label>Terminal</label>'+
+          '<select id="dsel"><option value="">Select terminal…</option></select>'+
         '</div>'+
         '<div class="fg"><label>Delay (hours)</label>'+
           '<input type="number" id="dval" placeholder="0.0" min="0" step="0.5" inputmode="decimal"></div>'+
@@ -788,8 +789,8 @@ function renderUpdateTab(){
           '<input type="text" id="dreason" placeholder="e.g. Berth congestion, Typhoon" autocomplete="off"></div>'+
         '<div class="fg"><label>Memo</label>'+
           '<textarea id="dmemo" placeholder="Additional notes (optional)"></textarea></div>'+
-        '<button class="sbtn" onclick="submitDelay()">?뱾 Submit Delay</button></div>'+
-        '<div class="logsec"><div class="logt">?뱥 Today\'s Entries</div><div id="dlog"></div></div>';
+        '<button class="sbtn" onclick="submitDelay()">📤 Submit Delay</button></div>'+
+        '<div class="logsec"><div class="logt">📋 Today\'s Entries</div><div id="dlog"></div></div>';
     renderLog();
 }
 function onPortChange(){
@@ -801,9 +802,9 @@ function onPortChange(){
 
     if(filtered.length===1){
         // Single terminal: simple dropdown (original behavior)
-        fg.innerHTML='<label style="font-size:12px;font-weight:600;color:#475569">??Terminal</label>'
+        fg.innerHTML='<label style="font-size:12px;font-weight:600;color:#475569">Terminal</label>'
             +'<select id="dsel" style="margin-top:4px"><option value="'+filtered[0].depot+'">'
-            +(filtered[0].country||'')+filtered[0].depot+' ??'+filtered[0].port_name
+            +(filtered[0].country||'')+filtered[0].depot+' → '+filtered[0].port_name
             +'</option></select>';
         fg.style.display='';
         return;
@@ -831,16 +832,16 @@ function onPortChange(){
     }).join('');
 
     fg.innerHTML=
-        '<div style="font-size:12px;font-weight:600;color:#475569;margin-bottom:6px">??Terminals at '+pc+' <span style="font-weight:400;color:#94a3b8">('+filtered.length+' terminals)</span></div>'
+        '<div style="font-size:12px;font-weight:600;color:#475569;margin-bottom:6px">Terminals at '+pc+' <span style="font-weight:400;color:#94a3b8">('+filtered.length+' terminals)</span></div>'
         // Auto-fill control
         +'<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:8px 10px;margin-bottom:8px;font-size:12px">'
-        +'<b>??Auto-fill</b>: '
+        +'<b>Auto-fill</b>: '
         +'<input type="number" id="autoFillVal" placeholder="delay h" min="0" step="0.5" '
         +'style="width:60px;padding:2px 6px;border:1px solid #93c5fd;border-radius:4px;font-size:12px;text-align:center"> '
         +'<input type="text" id="autoFillReason" placeholder="reason (optional)" '
         +'style="width:140px;padding:2px 6px;border:1px solid #93c5fd;border-radius:4px;font-size:12px"> '
         +'<button onclick="applyAutoFill()" style="background:#3b82f6;color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer">Apply All</button>'
-        +'<span style="color:#64748b;font-size:11px;margin-left:6px">??fill all empty rows</span>'
+        +'<span style="color:#64748b;font-size:11px;margin-left:6px">→ fill all empty rows</span>'
         +'</div>'
         // Table
         +'<div style="overflow-y:auto;max-height:260px;border:1px solid #e2e8f0;border-radius:6px">'
@@ -853,7 +854,7 @@ function onPortChange(){
         +'</tr></thead>'
         +'<tbody>'+rows+'</tbody>'
         +'</table></div>'
-        +'<button class="sbtn" onclick="submitBulkDelay()" style="margin-top:8px;width:100%">?뱾 Submit All</button>';
+        +'<button class="sbtn" onclick="submitBulkDelay()" style="margin-top:8px;width:100%">📤 Submit All</button>';
     fg.style.display='';
 }
 
@@ -908,7 +909,7 @@ function submitBulkDelay(){
     document.getElementById('terminalFg').style.display='none';
     document.getElementById('terminalFg').innerHTML='';
     renderLog();
-    alert('??Submitted '+submitted+' terminals. (Unfilled = avg '+avg.toFixed(1)+'h auto-applied)');
+    alert('✓ Submitted '+submitted+' terminals. (Unfilled = avg '+avg.toFixed(1)+'h auto-applied)');
 }
 function submitDelay(){
     // If bulk mode active, route to bulk submit
@@ -938,7 +939,7 @@ function submitDelay(){
     var sbtn=document.querySelector('.sbtn');
     if(sbtn){sbtn.disabled=true;sbtn.textContent='Submitting…';}
     var done=function(ok){
-        if(sbtn){sbtn.disabled=false;sbtn.textContent='?뱾 Submit Delay';}
+        if(sbtn){sbtn.disabled=false;sbtn.textContent='📤 Submit Delay';}
         if(ok){
             var td=JSON.parse(localStorage.getItem('pd_'+today)||'[]');
             var xi=td.findIndex(function(d){return d.depot===dp;});
@@ -971,12 +972,12 @@ function renderLog(){
     if(!el)return;
     var today=new Date().toISOString().split('T')[0];
     var td=JSON.parse(localStorage.getItem('pd_'+today)||'[]');
-    if(!td.length){el.innerHTML='<div class="nodata" style="padding:10px 0">Today Input 湲곕줉 None</div>';return;}
+    if(!td.length){el.innerHTML='<div class="nodata" style="padding:10px 0">No entries today</div>';return;}
     el.innerHTML=td.slice().reverse().map(function(d){
         var col=dcol(d.delay);
         var svcTag=d.service_code?'<span style="font-size:9px;background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:8px;margin-left:3px">'+d.service_code+'</span>':'';
         return '<div class="logi"><span style="color:'+col+';font-weight:700;min-width:34px">'+d.delay.toFixed(1)+'h</span>'+
-               '<span style="flex:1">'+d.depot+svcTag+(d.reason?' 쨌 '+d.reason:'')+'</span>'+
+               '<span style="flex:1">'+d.depot+svcTag+(d.reason?' · '+d.reason:'')+'</span>'+
                '<span style="color:var(--muted);font-size:10px">'+d.time+'</span></div>';
     }).join('');
 }
@@ -1275,12 +1276,12 @@ function showRoute(svcId){
     document.getElementById('rptitle').innerHTML=
         '<span style="color:'+col+'">'+svcId+'</span> '+
         '<span style="font-size:10px;background:'+col+';color:#fff;padding:1px 7px;border-radius:10px">'+(route.region||si.region||'')+'</span>';
-    var distTxt=DIST[svcId]?DIST[svcId].toLocaleString()+' NM 쨌 ':'';
+    var distTxt=DIST[svcId]?DIST[svcId].toLocaleString()+' NM · ':'';
     var vlist=VESSELS[svcId]||[];
     var vhtml=vlist.length?'<div class="rpvessels">'+vlist.map(function(v){
-        return '<span class="rpv" title="'+v.name+' | '+v.teu+'TEU | '+v.built+'??| '+v.flag+'">'+v.code+'</span>';
+        return '<span class="rpv" title="'+v.name+' | '+v.teu+'TEU | '+v.built+' | '+v.flag+'">'+v.code+'</span>';
     }).join('')+'</div>':'';
-    document.getElementById('rpmeta').innerHTML='<span style="color:var(--muted);font-size:11px">'+distTxt+'Mgr: '+(si.manager||route.manager||'-')+(si.backup?' 쨌 Dep: '+si.backup:'')+'</span>'+vhtml;
+    document.getElementById('rpmeta').innerHTML='<span style="color:var(--muted);font-size:11px">'+distTxt+'Mgr: '+(si.manager||route.manager||'-')+(si.backup?' · Dep: '+si.backup:'')+'</span>'+vhtml;
     document.getElementById('rpbody').innerHTML=rows+
         '<div class="rptotal"><span>Cumulative Est. Delay</span><span class="rptv" style="color:'+tc+'">'+cum.toFixed(1)+'h</span></div>';
     var rp=document.getElementById('rpanel');
@@ -1293,7 +1294,7 @@ function renderVesselTab(){
     var q=((document.getElementById('vvs')||{}).value||'').toLowerCase();
     var effectiveV=getEffectiveVessels();
     var allSvcs=Object.keys(effectiveV).sort();
-    var h='<input class="ssearch" id="vvs" placeholder="?뵇 Search vessels (name/code/route)..." oninput="renderVesselTab()" style="margin-bottom:10px">'+
+    var h='<input class="ssearch" id="vvs" placeholder="🔍 Search vessels (name/code/route)..." oninput="renderVesselTab()" style="margin-bottom:10px">'+
           '<div id="vesselCards">';
     var shown=0;
     allSvcs.forEach(function(svc){
@@ -1326,16 +1327,16 @@ function renderVesselTab(){
                '<div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+v.name+'</div>'+
                '<div style="font-size:11px;color:#64748b;margin-top:2px">'+
                (v.teu?v.teu.toLocaleString()+'TEU':'')+
-               (v.dwt?' 쨌 '+v.dwt.toLocaleString()+'DWT':'')+
-               (v.loa?' 쨌 LOA '+v.loa+'m':'')+
+               (v.dwt?' · '+v.dwt.toLocaleString()+'DWT':'')+
+               (v.loa?' · LOA '+v.loa+'m':'')+
                '</div>'+
                '<div style="font-size:11px;color:#94a3b8;margin-top:1px">'+
                (v.built?v.built+' built':'')+
-               (v.flag?' 쨌 '+v.flag:'')+
-               (v.imo?' 쨌 IMO '+v.imo:'')+
+               (v.flag?' · '+v.flag:'')+
+               (v.imo?' · IMO '+v.imo:'')+
                '</div>'+
                '</div>'+
-               '<div style="font-size:10px;color:#94a3b8;align-self:center">?뿺截?/div>'+
+               '<div style="font-size:10px;color:#94a3b8;align-self:center">➡️/div>'+
                '</div>';
         });
         h+='</div>';
@@ -1358,7 +1359,7 @@ function showVesselModal(svc, idx){
 
     document.getElementById('vmHeader').style.background=col;
     document.getElementById('vmName').textContent=v.name;
-    document.getElementById('vmSvc').textContent=svc+' 쨌 '+((ro&&ro.name)||si.region||'');
+    document.getElementById('vmSvc').textContent=svc+' · '+((ro&&ro.name)||si.region||'');
 
     function tr(label,val){
         if(!val||val==='0'||val===0||val==='0.0')return'';
@@ -1408,7 +1409,7 @@ function saveAisConfig(){
     localStorage.setItem('pd_aisprov',prov);
     var msg=document.getElementById('aisMsg');
     msg.style.color='var(--ok)';
-    msg.textContent=key?'??Saved':'Cleared';
+    msg.textContent=key?'✓ Saved':'Cleared';
     setTimeout(function(){msg.textContent='';},2500);
 }
 
@@ -1446,7 +1447,7 @@ function testAisApi(){
             if(done)return; done=true;
             wsTest.close();
             msg.style.color='var(--ok)';
-            msg.textContent='??aisstream.io connected!';
+            msg.textContent='✓ aisstream.io connected!';
             setTimeout(function(){msg.textContent='';},4000);
         };
         wsTest.onerror=function(e){console.error('[AIS test] error',e);};
@@ -1456,29 +1457,29 @@ function testAisApi(){
             console.warn('[AIS test] closed code='+code+' reason='+reason);
             if(code===1006){
                 msg.style.color='var(--danger)';
-                msg.textContent='??Network error ??cannot reach aisstream.io (code 1006)';
+                msg.textContent='✗ Network error — cannot reach aisstream.io (code 1006)';
             } else if(code>=4000){
                 msg.style.color='var(--danger)';
-                msg.textContent='??API key rejected (code '+code+(reason?' 쨌 '+reason:'')+')';
+                msg.textContent='✗ API key rejected (code '+code+(reason?' · '+reason:'')+')';
             } else {
                 msg.style.color='#f59e0b';
-                msg.textContent='?좑툘 Closed (code '+code+') ??key may be valid but quiet area';
+                msg.textContent='⚠️ Closed (code '+code+') — key may be valid but quiet area';
             }
         };
         setTimeout(function(){
             if(!done&&wsTest.readyState===1){
                 wsTest.close();
                 msg.style.color='#f59e0b';
-                msg.textContent='?좑툘 Connected but no data yet ??key likely valid';
+                msg.textContent='⚠️ Connected but no data yet — key likely valid';
             }
         },10000);
     } else {
         // Test REST API (may fail due to CORS)
         fetchVesselPos('9693927',key,prov).then(function(pos){
-            if(pos){msg.style.color='var(--ok)'; msg.textContent='??Connected!';}
-            else{msg.style.color='var(--danger)'; msg.textContent='??No data ??check key or use aisstream.io';}
+            if(pos){msg.style.color='var(--ok)'; msg.textContent='✓ Connected!';}
+            else{msg.style.color='var(--danger)'; msg.textContent='✗ No data — check key or use aisstream.io';}
         }).catch(function(e){
-            msg.style.color='var(--danger)'; msg.textContent='??CORS blocked ??use aisstream.io instead';
+            msg.style.color='var(--danger)'; msg.textContent='✗ CORS blocked — use aisstream.io instead';
         });
     }
 }
@@ -1551,7 +1552,7 @@ function makeShipIcon(heading, color){
 function buildAisPopup(vessel, pos, svcId, color){
     var rows='';
     if(pos.speed!==undefined&&pos.speed!==null) rows+='<tr><td style="color:#64748b;padding-right:10px">Speed</td><td><b>'+pos.speed+' kn</b></td></tr>';
-    if(pos.heading!==undefined&&pos.heading!==null&&pos.heading<512) rows+='<tr><td style="color:#64748b;padding-right:10px">Heading</td><td>'+pos.heading+'째</td></tr>';
+    if(pos.heading!==undefined&&pos.heading!==null&&pos.heading<512) rows+='<tr><td style="color:#64748b;padding-right:10px">Heading</td><td>'+pos.heading+'°</td></tr>';
     if(pos.dest&&pos.dest.trim()) rows+='<tr><td style="color:#64748b;padding-right:10px">Destination</td><td>'+pos.dest.trim()+'</td></tr>';
     if(vessel.flag) rows+='<tr><td style="color:#64748b;padding-right:10px">Flag</td><td>'+vessel.flag+'</td></tr>';
     if(vessel.type) rows+='<tr><td style="color:#64748b;padding-right:10px">Type</td><td>'+vessel.type+'</td></tr>';
@@ -1561,7 +1562,7 @@ function buildAisPopup(vessel, pos, svcId, color){
     var upd=pos.updatedAt?'<div style="font-size:10px;color:#94a3b8;margin-top:6px;border-top:1px solid #f1f5f9;padding-top:4px">'+pos.updatedAt+'</div>':'';
     return '<div style="min-width:190px;font-family:sans-serif">'
         +'<div style="font-weight:700;font-size:14px;color:'+color+'">'+vessel.name+'</div>'
-        +'<div style="font-size:11px;color:#64748b;margin-bottom:6px">'+vessel.code+' 쨌 '+svcId+'</div>'
+        +'<div style="font-size:11px;color:#64748b;margin-bottom:6px">'+vessel.code+' · '+svcId+'</div>'
         +(rows?'<table style="font-size:12px;border-collapse:collapse">'+rows+'</table>':'')
         +upd+'</div>';
 }
@@ -1582,7 +1583,7 @@ function placeVesselMarker(vessel, pos, svcId, color){
     }
     // Update status bar
     var cnt=Object.keys(aisVesselMap).length;
-    setAisStatus('?쎇截?'+cnt+'/'+((getEffectiveVessels()[svcId]||[]).length)+' vessels located','#0369a1');
+    setAisStatus('🛰️'+cnt+'/'+((getEffectiveVessels()[svcId]||[]).length)+' vessels located','#0369a1');
 }
 
 function setAisStatus(txt, color, showRetry){
@@ -1610,18 +1611,18 @@ function clearAisMarkers(){
 
 // ?? aisstream.io WebSocket (FREE) ?????????????????????????????
 function startAisStream(svcId){
-    if(!CONFIG.aisApiKey){setAisStatus('?좑툘 No AIS key ??configure in Admin','#f59e0b'); return;}
+    if(!CONFIG.aisApiKey){setAisStatus('⚠️ No AIS key — configure in Admin','#f59e0b'); return;}
     var bbox=getRouteBBox(svcId);
-    if(!bbox){setAisStatus('?좑툘 No route coordinates available','#f59e0b'); return;}
+    if(!bbox){setAisStatus('⚠️ No route coordinates available','#f59e0b'); return;}
     var vlist=getEffectiveVessels()[svcId]||[];
-    if(!vlist.length){setAisStatus('?좑툘 No vessels assigned to this route','#94a3b8'); return;}
+    if(!vlist.length){setAisStatus('⚠️ No vessels assigned to this route','#94a3b8'); return;}
     var color=getSvcColor(svcId);
     aisCurrentSvc=svcId;
-    setAisStatus('?쎇截?Connecting to aisstream.io…','#64748b');
+    setAisStatus('🛰️Connecting to aisstream.io…','#64748b');
     if(aisWs){try{aisWs.close();}catch(e){} aisWs=null;}
     aisWs=new WebSocket('wss://stream.aisstream.io/v0/stream');
     aisWs.onopen=function(){
-        setAisStatus('?쎇截?Searching for '+vlist.length+' vessels…','#3b82f6');
+        setAisStatus('🛰️Searching for '+vlist.length+' vessels…','#3b82f6');
         aisWs.send(JSON.stringify({
             APIKey: CONFIG.aisApiKey,
             BoundingBoxes: [bbox],
@@ -1692,19 +1693,19 @@ function startAisStream(svcId){
         var reason=e.reason||'';
         var code=e.code||0;
         if(code===1006){
-            setAisStatus('??Cannot reach aisstream.io ??check network (code 1006)','#ef4444',true);
+            setAisStatus('✗ Cannot reach aisstream.io — check network (code 1006)','#ef4444',true);
         } else if(code>=4000){
-            setAisStatus('??API key rejected (code '+code+(reason?' 쨌 '+reason:'')+')','#ef4444',true);
+            setAisStatus('✗ API key rejected (code '+code+(reason?' · '+reason:'')+')','#ef4444',true);
         } else if(code===1000||code===1001){
-            if(!found) setAisStatus('?좑툘 No vessels matched in this route area','#94a3b8',true);
+            if(!found) setAisStatus('⚠️ No vessels matched in this route area','#94a3b8',true);
         } else {
-            setAisStatus('??Disconnected (code '+code+(reason?' 쨌 '+reason:'')+')','#ef4444',true);
+            setAisStatus('✗ Disconnected (code '+code+(reason?' · '+reason:'')+')','#ef4444',true);
         }
     };
     // After 45s, if still no matches, show hint
     setTimeout(function(){
         if(aisCurrentSvc===svcId&&Object.keys(aisVesselMap).length===0){
-            setAisStatus('?좑툘 No vessels matched yet ??vessels may be outside route area','#94a3b8');
+            setAisStatus('⚠️ No vessels matched yet — vessels may be outside route area','#94a3b8');
         }
     },45000);
 }
@@ -1714,8 +1715,8 @@ function showVesselsOnMapRest(svcId){
     var vlist=getEffectiveVessels()[svcId]||[];
     var color=getSvcColor(svcId);
     var total=vlist.filter(function(v){return v.imo;}).length;
-    if(!total){setAisStatus('?좑툘 No vessels with IMO assigned','#94a3b8'); return;}
-    setAisStatus('?쎇截?Fetching '+total+' vessel positions…','#64748b');
+    if(!total){setAisStatus('⚠️ No vessels with IMO assigned','#94a3b8'); return;}
+    setAisStatus('🛰️Fetching '+total+' vessel positions…','#64748b');
     var found=0;
     vlist.forEach(function(v){
         if(!v.imo) return;
@@ -1811,7 +1812,7 @@ function renderVassign(){
     // get all service codes for dropdown
     var allSvcs=Object.keys(ROUTES).sort();
     var svcOpts=allSvcs.map(function(s){
-        var ro=ROUTES[s];return'<option value="'+s+'">'+s+(ro&&ro.name?' ??'+ro.name:'')+'</option>';
+        var ro=ROUTES[s];return'<option value="'+s+'">'+s+(ro&&ro.name?' → '+ro.name:'')+'</option>';
     }).join('');
 
     var rows=allV.map(function(item){
@@ -1837,7 +1838,7 @@ function saveVesselAssign(){
     var today=new Date().toISOString().split('T')[0];
     localStorage.setItem('pd_vassign',JSON.stringify({updated:today,assignments:assignments}));
     var msg=document.getElementById('vassignMsg');
-    if(msg){msg.textContent='??Save ?꾨즺 ('+today+')';setTimeout(function(){msg.textContent='';},3000);}
+    if(msg){msg.textContent='✓ Saved ('+today+')';setTimeout(function(){msg.textContent='';},3000);}
     document.getElementById('vassignDate').textContent='(Last updated: '+today+')';
     // refresh vessel tab if open
     if(typeof tab!=='undefined'&&tab==='vessel')renderVesselTab();
@@ -1861,7 +1862,7 @@ function exportUsers(){
     a.click();
 }
 function importUsersPrompt(){
-    var csv=prompt('Paste CSV (email,name,role) ??one user per line:\n\nexample:\njohn@co.com,John,reporter\nmary@co.com,Mary,admin');
+    var csv=prompt('Paste CSV (email,name,role) — one user per line:\n\nexample:\njohn@co.com,John,reporter\nmary@co.com,Mary,admin');
     if(!csv)return;
     var u=JSON.parse(localStorage.getItem('pd_u')||'{}');
     var lines=csv.trim().split('\n');
@@ -1877,7 +1878,7 @@ function importUsersPrompt(){
     });
     localStorage.setItem('pd_u',JSON.stringify(u));
     renderUsers();
-    document.getElementById('userSyncMsg').textContent='??'+added+' user(s) imported';
+    document.getElementById('userSyncMsg').textContent='✓ '+added+' user(s) imported';
     setTimeout(function(){document.getElementById('userSyncMsg').textContent='';},3000);
 }
 function syncUsersFromSheet(){
@@ -1902,10 +1903,10 @@ function syncUsersFromSheet(){
         if(adminEntry)u[CONFIG.adminEmail]=adminEntry;
         localStorage.setItem('pd_u',JSON.stringify(u));
         renderUsers();
-        document.getElementById('userSyncMsg').textContent='??Synced '+data.users.length+' user(s)';
+        document.getElementById('userSyncMsg').textContent='✓ Synced '+data.users.length+' user(s)';
         setTimeout(function(){document.getElementById('userSyncMsg').textContent='';},3000);
     })
-    .catch(function(){document.getElementById('userSyncMsg').textContent='Sync failed ??check Script URL';});
+    .catch(function(){document.getElementById('userSyncMsg').textContent='Sync failed — check Script URL';});
 }
 
 // ?? VERSION & UPDATE ??????????????????????????????????????????????????????????
@@ -1918,7 +1919,7 @@ function saveUpdateUrl(){
 }
 function checkForUpdate(manual){
     var url=CONFIG.updateUrl||localStorage.getItem('pd_uurl')||'';
-    if(!url){if(manual)alert('Update URL not set. Set it in Admin ??App Version & Updates.');return;}
+    if(!url){if(manual)alert('Update URL not set. Set it in Admin → App Version & Updates.');return;}
     fetch(url+'?nocache='+Date.now(),{cache:'no-store'})
     .then(function(r){return r.text();})
     .then(function(html){
@@ -1971,7 +1972,7 @@ function renderUsers(){
                '<option value="reporter"'+(uu.role==='reporter'?' selected':'')+'>Reporter</option>'+
                '<option value="admin"'+(uu.role==='admin'?' selected':'')+'>Admin</option>'+
                '</select>'+
-               '<button class="bdanger" data-em="'+em+'" onclick="removeUser(this.dataset.em)" style="font-size:11px;padding:3px 8px">??/button></div>';
+               '<button class="bdanger" data-em="'+em+'" onclick="removeUser(this.dataset.em)" style="font-size:11px;padding:3px 8px">✕</button></div>';
     }).join('');
     document.getElementById('userList').innerHTML=h||'<div style="color:var(--muted);font-size:12px">No users registered</div>';
 }
@@ -2001,15 +2002,15 @@ function saveScriptUrl(){
     var url=document.getElementById('scriptUrl').value.trim();
     CONFIG.appsScriptUrl=url;
     localStorage.setItem('pd_surl',url);
-    document.getElementById('surlStat').textContent=url?'Saved ??applies on next reload':'Cleared';
+    document.getElementById('surlStat').textContent=url?'Saved — applies on next reload':'Cleared';
     if(url)fetchLive();
 }
 function clearScriptUrl(){
     document.getElementById('scriptUrl').value='';
     CONFIG.appsScriptUrl='';
     localStorage.removeItem('pd_surl');
-    document.getElementById('surlStat').textContent='Cleared (Offline 紐⑤뱶)';
-    document.getElementById('lstat').textContent='Offline 紐⑤뱶';
+    document.getElementById('surlStat').textContent='Cleared (Offline mode)';
+    document.getElementById('lstat').textContent='Offline mode';
     document.getElementById('ldot').className='live-dot';
 }
 
@@ -2208,10 +2209,10 @@ window.onload=initAuth;
 
   </script>
 <nav class="mob-nav" id="mobNav" style="display:none">
-  <button class="mob-nav-btn active" id="mn_port" onclick="mobTab('port')"><span class="mnicon">?슓</span>??뎄</button>
-  <button class="mob-nav-btn" id="mn_service" onclick="mobTab('service')"><span class="mnicon">?뿺</span>Routes</button>
-  <button class="mob-nav-btn" id="mn_update" onclick="mobTab('update')"><span class="mnicon">?륅툘</span>Input</button>
-  <button class="mob-nav-btn" id="mn_map" onclick="mobTab('map')"><span class="mnicon">?뱧</span>Map</button>
+  <button class="mob-nav-btn active" id="mn_port" onclick="mobTab('port')"><span class="mnicon">🚢</span>Port</button>
+  <button class="mob-nav-btn" id="mn_service" onclick="mobTab('service')"><span class="mnicon">🌐</span>Routes</button>
+  <button class="mob-nav-btn" id="mn_update" onclick="mobTab('update')"><span class="mnicon">✏️</span>Input</button>
+  <button class="mob-nav-btn" id="mn_map" onclick="mobTab('map')"><span class="mnicon">🗺️</span>Map</button>
 </nav>
 <script>
 // ?? PWA INSTALL ???????????????????????????????????????????????

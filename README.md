@@ -1,5 +1,7 @@
 # Operation Dashboard
 
+[![validate](https://github.com/mustbebecomerichman/Operation-dashboard/actions/workflows/validate.yml/badge.svg?branch=main)](https://github.com/mustbebecomerichman/Operation-dashboard/actions/workflows/validate.yml)
+
 Port Delay Monitoring Dashboard — single-file HTML PWA with Leaflet map, port/service tracking, and Google Apps Script backend.
 
 ## Live

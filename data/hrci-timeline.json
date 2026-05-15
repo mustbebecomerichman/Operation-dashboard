@@ -1,0 +1,2045 @@
+{
+  "source": "HRCI weekly index.xlsx — sheet M.Y-Index",
+  "extracted_at": "2026-05-12",
+  "frequency": "monthly",
+  "series": "1 Year G. Index",
+  "unit": "Index points",
+  "count": 407,
+  "points": [
+    {
+      "year": 1993,
+      "month": 1,
+      "value": 1103.3
+    },
+    {
+      "year": 1993,
+      "month": 2,
+      "value": 1090.7
+    },
+    {
+      "year": 1993,
+      "month": 3,
+      "value": 1110.9
+    },
+    {
+      "year": 1993,
+      "month": 4,
+      "value": 1086.9
+    },
+    {
+      "year": 1993,
+      "month": 5,
+      "value": 1082.6
+    },
+    {
+      "year": 1993,
+      "month": 6,
+      "value": 1076.1
+    },
+    {
+      "year": 1993,
+      "month": 7,
+      "value": 1076.1
+    },
+    {
+      "year": 1993,
+      "month": 8,
+      "value": 1058.7
+    },
+    {
+      "year": 1993,
+      "month": 9,
+      "value": 1053.2
+    },
+    {
+      "year": 1993,
+      "month": 10,
+      "value": 1050.3
+    },
+    {
+      "year": 1993,
+      "month": 11,
+      "value": 1077.7
+    },
+    {
+      "year": 1993,
+      "month": 12,
+      "value": 1077.7
+    },
+    {
+      "year": 1994,
+      "month": 1,
+      "value": 1085.1
+    },
+    {
+      "year": 1994,
+      "month": 2,
+      "value": 1045.2
+    },
+    {
+      "year": 1994,
+      "month": 3,
+      "value": 1047.5
+    },
+    {
+      "year": 1994,
+      "month": 4,
+      "value": 1041.2
+    },
+    {
+      "year": 1994,
+      "month": 5,
+      "value": 1038.8
+    },
+    {
+      "year": 1994,
+      "month": 6,
+      "value": 1068.7
+    },
+    {
+      "year": 1994,
+      "month": 7,
+      "value": 1075.9
+    },
+    {
+      "year": 1994,
+      "month": 8,
+      "value": 1080.6
+    },
+    {
+      "year": 1994,
+      "month": 9,
+      "value": 1077.3
+    },
+    {
+      "year": 1994,
+      "month": 10,
+      "value": 1079.1
+    },
+    {
+      "year": 1994,
+      "month": 11,
+      "value": 1089.4
+    },
+    {
+      "year": 1994,
+      "month": 12,
+      "value": 1090.7
+    },
+    {
+      "year": 1995,
+      "month": 1,
+      "value": 1081.3
+    },
+    {
+      "year": 1995,
+      "month": 2,
+      "value": 1108.8
+    },
+    {
+      "year": 1995,
+      "month": 3,
+      "value": 1131.2
+    },
+    {
+      "year": 1995,
+      "month": 4,
+      "value": 1125.0
+    },
+    {
+      "year": 1995,
+      "month": 5,
+      "value": 1151.9
+    },
+    {
+      "year": 1995,
+      "month": 6,
+      "value": 1180.5
+    },
+    {
+      "year": 1995,
+      "month": 7,
+      "value": 1192.8
+    },
+    {
+      "year": 1995,
+      "month": 8,
+      "value": 1207.7
+    },
+    {
+      "year": 1995,
+      "month": 9,
+      "value": 1193.5
+    },
+    {
+      "year": 1995,
+      "month": 10,
+      "value": 1199.8
+    },
+    {
+      "year": 1995,
+      "month": 11,
+      "value": 1166.9
+    },
+    {
+      "year": 1995,
+      "month": 12,
+      "value": 1165.1
+    },
+    {
+      "year": 1996,
+      "month": 1,
+      "value": 1147.2
+    },
+    {
+      "year": 1996,
+      "month": 2,
+      "value": 1161.0
+    },
+    {
+      "year": 1996,
+      "month": 3,
+      "value": 1163.8
+    },
+    {
+      "year": 1996,
+      "month": 4,
+      "value": 1156.8
+    },
+    {
+      "year": 1996,
+      "month": 5,
+      "value": 1136.8
+    },
+    {
+      "year": 1996,
+      "month": 6,
+      "value": 1080.3
+    },
+    {
+      "year": 1996,
+      "month": 7,
+      "value": 1086.6
+    },
+    {
+      "year": 1996,
+      "month": 8,
+      "value": 1079.8
+    },
+    {
+      "year": 1996,
+      "month": 9,
+      "value": 1044.1
+    },
+    {
+      "year": 1996,
+      "month": 10,
+      "value": 1037.0
+    },
+    {
+      "year": 1996,
+      "month": 11,
+      "value": 1005.9
+    },
+    {
+      "year": 1996,
+      "month": 12,
+      "value": 1004.5
+    },
+    {
+      "year": 1997,
+      "month": 1,
+      "value": 1001.0
+    },
+    {
+      "year": 1997,
+      "month": 2,
+      "value": 990.0
+    },
+    {
+      "year": 1997,
+      "month": 3,
+      "value": 964.0
+    },
+    {
+      "year": 1997,
+      "month": 4,
+      "value": 950.0
+    },
+    {
+      "year": 1997,
+      "month": 5,
+      "value": 922.0
+    },
+    {
+      "year": 1997,
+      "month": 6,
+      "value": 888.0
+    },
+    {
+      "year": 1997,
+      "month": 7,
+      "value": 880.0
+    },
+    {
+      "year": 1997,
+      "month": 8,
+      "value": 877.0
+    },
+    {
+      "year": 1997,
+      "month": 9,
+      "value": 878.0
+    },
+    {
+      "year": 1997,
+      "month": 10,
+      "value": 872.0
+    },
+    {
+      "year": 1997,
+      "month": 11,
+      "value": 873.0
+    },
+    {
+      "year": 1997,
+      "month": 12,
+      "value": 858.0
+    },
+    {
+      "year": 1998,
+      "month": 1,
+      "value": 833.0
+    },
+    {
+      "year": 1998,
+      "month": 2,
+      "value": 828.0
+    },
+    {
+      "year": 1998,
+      "month": 3,
+      "value": 827.0
+    },
+    {
+      "year": 1998,
+      "month": 4,
+      "value": 823.5
+    },
+    {
+      "year": 1998,
+      "month": 5,
+      "value": 802.975
+    },
+    {
+      "year": 1998,
+      "month": 6,
+      "value": 780.375
+    },
+    {
+      "year": 1998,
+      "month": 7,
+      "value": 761.0
+    },
+    {
+      "year": 1998,
+      "month": 8,
+      "value": 719.4
+    },
+    {
+      "year": 1998,
+      "month": 9,
+      "value": 697.68
+    },
+    {
+      "year": 1998,
+      "month": 10,
+      "value": 694.3
+    },
+    {
+      "year": 1998,
+      "month": 11,
+      "value": 668.0
+    },
+    {
+      "year": 1998,
+      "month": 12,
+      "value": 635.4
+    },
+    {
+      "year": 1999,
+      "month": 1,
+      "value": 619.1
+    },
+    {
+      "year": 1999,
+      "month": 2,
+      "value": 604.45
+    },
+    {
+      "year": 1999,
+      "month": 3,
+      "value": 596.74
+    },
+    {
+      "year": 1999,
+      "month": 4,
+      "value": 614.2
+    },
+    {
+      "year": 1999,
+      "month": 5,
+      "value": 637.8
+    },
+    {
+      "year": 1999,
+      "month": 6,
+      "value": 657.8
+    },
+    {
+      "year": 1999,
+      "month": 7,
+      "value": 681.475
+    },
+    {
+      "year": 1999,
+      "month": 8,
+      "value": 711.3
+    },
+    {
+      "year": 1999,
+      "month": 9,
+      "value": 742.2
+    },
+    {
+      "year": 1999,
+      "month": 10,
+      "value": 759.7
+    },
+    {
+      "year": 1999,
+      "month": 11,
+      "value": 745.0
+    },
+    {
+      "year": 1999,
+      "month": 12,
+      "value": 705.9
+    },
+    {
+      "year": 2000,
+      "month": 1,
+      "value": 701.3
+    },
+    {
+      "year": 2000,
+      "month": 2,
+      "value": 737.5
+    },
+    {
+      "year": 2000,
+      "month": 3,
+      "value": 778.5
+    },
+    {
+      "year": 2000,
+      "month": 4,
+      "value": 858.0
+    },
+    {
+      "year": 2000,
+      "month": 5,
+      "value": 918.4
+    },
+    {
+      "year": 2000,
+      "month": 6,
+      "value": 947.1
+    },
+    {
+      "year": 2000,
+      "month": 7,
+      "value": 937.5
+    },
+    {
+      "year": 2000,
+      "month": 8,
+      "value": 941.0
+    },
+    {
+      "year": 2000,
+      "month": 9,
+      "value": 950.75
+    },
+    {
+      "year": 2000,
+      "month": 10,
+      "value": 936.5
+    },
+    {
+      "year": 2000,
+      "month": 11,
+      "value": 883.04
+    },
+    {
+      "year": 2000,
+      "month": 12,
+      "value": 802.1
+    },
+    {
+      "year": 2001,
+      "month": 1,
+      "value": 790.88
+    },
+    {
+      "year": 2001,
+      "month": 2,
+      "value": 795.4245
+    },
+    {
+      "year": 2001,
+      "month": 3,
+      "value": 793.9748
+    },
+    {
+      "year": 2001,
+      "month": 4,
+      "value": 820.175
+    },
+    {
+      "year": 2001,
+      "month": 5,
+      "value": 822.578
+    },
+    {
+      "year": 2001,
+      "month": 6,
+      "value": 785.425
+    },
+    {
+      "year": 2001,
+      "month": 7,
+      "value": 744.55
+    },
+    {
+      "year": 2001,
+      "month": 8,
+      "value": 695.2
+    },
+    {
+      "year": 2001,
+      "month": 9,
+      "value": 658.3
+    },
+    {
+      "year": 2001,
+      "month": 10,
+      "value": 594.66
+    },
+    {
+      "year": 2001,
+      "month": 11,
+      "value": 521.325
+    },
+    {
+      "year": 2001,
+      "month": 12,
+      "value": 476.1467
+    },
+    {
+      "year": 2002,
+      "month": 1,
+      "value": 456.32
+    },
+    {
+      "year": 2002,
+      "month": 2,
+      "value": 471.15
+    },
+    {
+      "year": 2002,
+      "month": 3,
+      "value": 494.85
+    },
+    {
+      "year": 2002,
+      "month": 4,
+      "value": 524.125
+    },
+    {
+      "year": 2002,
+      "month": 5,
+      "value": 557.78
+    },
+    {
+      "year": 2002,
+      "month": 6,
+      "value": 585.8
+    },
+    {
+      "year": 2002,
+      "month": 7,
+      "value": 606.04
+    },
+    {
+      "year": 2002,
+      "month": 8,
+      "value": 626.0
+    },
+    {
+      "year": 2002,
+      "month": 9,
+      "value": 644.375
+    },
+    {
+      "year": 2002,
+      "month": 10,
+      "value": 655.76
+    },
+    {
+      "year": 2002,
+      "month": 11,
+      "value": 666.275
+    },
+    {
+      "year": 2002,
+      "month": 12,
+      "value": 635.46
+    },
+    {
+      "year": 2003,
+      "month": 1,
+      "value": 627.975
+    },
+    {
+      "year": 2003,
+      "month": 2,
+      "value": 675.85
+    },
+    {
+      "year": 2003,
+      "month": 3,
+      "value": 744.6
+    },
+    {
+      "year": 2003,
+      "month": 4,
+      "value": 837.14
+    },
+    {
+      "year": 2003,
+      "month": 5,
+      "value": 918.55
+    },
+    {
+      "year": 2003,
+      "month": 6,
+      "value": 973.775
+    },
+    {
+      "year": 2003,
+      "month": 7,
+      "value": 1012.56
+    },
+    {
+      "year": 2003,
+      "month": 8,
+      "value": 1069.75
+    },
+    {
+      "year": 2003,
+      "month": 9,
+      "value": 1096.4
+    },
+    {
+      "year": 2003,
+      "month": 10,
+      "value": 1134.74
+    },
+    {
+      "year": 2003,
+      "month": 11,
+      "value": 1107.825
+    },
+    {
+      "year": 2003,
+      "month": 12,
+      "value": 1083.9333
+    },
+    {
+      "year": 2004,
+      "month": 1,
+      "value": 1129.95
+    },
+    {
+      "year": 2004,
+      "month": 2,
+      "value": 1250.725
+    },
+    {
+      "year": 2004,
+      "month": 3,
+      "value": 1372.04
+    },
+    {
+      "year": 2004,
+      "month": 4,
+      "value": 1461.625
+    },
+    {
+      "year": 2004,
+      "month": 5,
+      "value": 1516.125
+    },
+    {
+      "year": 2004,
+      "month": 6,
+      "value": 1550.36
+    },
+    {
+      "year": 2004,
+      "month": 7,
+      "value": 1573.35
+    },
+    {
+      "year": 2004,
+      "month": 8,
+      "value": 1593.625
+    },
+    {
+      "year": 2004,
+      "month": 9,
+      "value": 1666.82
+    },
+    {
+      "year": 2004,
+      "month": 10,
+      "value": 1721.925
+    },
+    {
+      "year": 2004,
+      "month": 11,
+      "value": 1760.025
+    },
+    {
+      "year": 2004,
+      "month": 12,
+      "value": 1842.525
+    },
+    {
+      "year": 2005,
+      "month": 1,
+      "value": 1911.3
+    },
+    {
+      "year": 2005,
+      "month": 2,
+      "value": 1972.2
+    },
+    {
+      "year": 2005,
+      "month": 3,
+      "value": 2028.04
+    },
+    {
+      "year": 2005,
+      "month": 4,
+      "value": 2049.125
+    },
+    {
+      "year": 2005,
+      "month": 5,
+      "value": 2083.05
+    },
+    {
+      "year": 2005,
+      "month": 6,
+      "value": 2081.06
+    },
+    {
+      "year": 2005,
+      "month": 7,
+      "value": 2022.95
+    },
+    {
+      "year": 2005,
+      "month": 8,
+      "value": 1897.06
+    },
+    {
+      "year": 2005,
+      "month": 9,
+      "value": 1773.275
+    },
+    {
+      "year": 2005,
+      "month": 10,
+      "value": 1557.9
+    },
+    {
+      "year": 2005,
+      "month": 11,
+      "value": 1334.62
+    },
+    {
+      "year": 2005,
+      "month": 12,
+      "value": 1292.7
+    },
+    {
+      "year": 2006,
+      "month": 1,
+      "value": 1268.55
+    },
+    {
+      "year": 2006,
+      "month": 2,
+      "value": 1229.7
+    },
+    {
+      "year": 2006,
+      "month": 3,
+      "value": 1217.64
+    },
+    {
+      "year": 2006,
+      "month": 4,
+      "value": 1263.65
+    },
+    {
+      "year": 2006,
+      "month": 5,
+      "value": 1327.56
+    },
+    {
+      "year": 2006,
+      "month": 6,
+      "value": 1353.4
+    },
+    {
+      "year": 2006,
+      "month": 7,
+      "value": 1343.6
+    },
+    {
+      "year": 2006,
+      "month": 8,
+      "value": 1321.2
+    },
+    {
+      "year": 2006,
+      "month": 9,
+      "value": 1265.75
+    },
+    {
+      "year": 2006,
+      "month": 10,
+      "value": 1182.05
+    },
+    {
+      "year": 2006,
+      "month": 11,
+      "value": 1076.22
+    },
+    {
+      "year": 2006,
+      "month": 12,
+      "value": 1030.9333
+    },
+    {
+      "year": 2007,
+      "month": 1,
+      "value": 1044.0
+    },
+    {
+      "year": 2007,
+      "month": 2,
+      "value": 1121.275
+    },
+    {
+      "year": 2007,
+      "month": 3,
+      "value": 1153.425
+    },
+    {
+      "year": 2007,
+      "month": 4,
+      "value": 1203.0
+    },
+    {
+      "year": 2007,
+      "month": 5,
+      "value": 1232.32
+    },
+    {
+      "year": 2007,
+      "month": 6,
+      "value": 1262.225
+    },
+    {
+      "year": 2007,
+      "month": 7,
+      "value": 1313.125
+    },
+    {
+      "year": 2007,
+      "month": 8,
+      "value": 1362.88
+    },
+    {
+      "year": 2007,
+      "month": 9,
+      "value": 1394.65
+    },
+    {
+      "year": 2007,
+      "month": 10,
+      "value": 1393.5
+    },
+    {
+      "year": 2007,
+      "month": 11,
+      "value": 1366.2
+    },
+    {
+      "year": 2007,
+      "month": 12,
+      "value": 1344.5667
+    },
+    {
+      "year": 2008,
+      "month": 1,
+      "value": 1356.78
+    },
+    {
+      "year": 2008,
+      "month": 2,
+      "value": 1372.625
+    },
+    {
+      "year": 2008,
+      "month": 3,
+      "value": 1377.075
+    },
+    {
+      "year": 2008,
+      "month": 4,
+      "value": 1360.5
+    },
+    {
+      "year": 2008,
+      "month": 5,
+      "value": 1326.275
+    },
+    {
+      "year": 2008,
+      "month": 6,
+      "value": 1258.6
+    },
+    {
+      "year": 2008,
+      "month": 7,
+      "value": 1195.18
+    },
+    {
+      "year": 2008,
+      "month": 8,
+      "value": 1105.275
+    },
+    {
+      "year": 2008,
+      "month": 9,
+      "value": 1026.3
+    },
+    {
+      "year": 2008,
+      "month": 10,
+      "value": 861.88
+    },
+    {
+      "year": 2008,
+      "month": 11,
+      "value": 631.85
+    },
+    {
+      "year": 2008,
+      "month": 12,
+      "value": 520.75
+    },
+    {
+      "year": 2009,
+      "month": 1,
+      "value": 472.875
+    },
+    {
+      "year": 2009,
+      "month": 2,
+      "value": 433.4
+    },
+    {
+      "year": 2009,
+      "month": 3,
+      "value": 383.475
+    },
+    {
+      "year": 2009,
+      "month": 4,
+      "value": 367.2
+    },
+    {
+      "year": 2009,
+      "month": 5,
+      "value": 359.125
+    },
+    {
+      "year": 2009,
+      "month": 6,
+      "value": 352.15
+    },
+    {
+      "year": 2009,
+      "month": 7,
+      "value": 345.26
+    },
+    {
+      "year": 2009,
+      "month": 8,
+      "value": 344.675
+    },
+    {
+      "year": 2009,
+      "month": 9,
+      "value": 343.1
+    },
+    {
+      "year": 2009,
+      "month": 10,
+      "value": 333.45
+    },
+    {
+      "year": 2009,
+      "month": 11,
+      "value": 333.25
+    },
+    {
+      "year": 2009,
+      "month": 12,
+      "value": 332.1
+    },
+    {
+      "year": 2010,
+      "month": 1,
+      "value": 336.2
+    },
+    {
+      "year": 2010,
+      "month": 2,
+      "value": 349.675
+    },
+    {
+      "year": 2010,
+      "month": 3,
+      "value": 367.64
+    },
+    {
+      "year": 2010,
+      "month": 4,
+      "value": 399.825
+    },
+    {
+      "year": 2010,
+      "month": 5,
+      "value": 470.425
+    },
+    {
+      "year": 2010,
+      "month": 6,
+      "value": 587.52
+    },
+    {
+      "year": 2010,
+      "month": 7,
+      "value": 661.575
+    },
+    {
+      "year": 2010,
+      "month": 8,
+      "value": 679.075
+    },
+    {
+      "year": 2010,
+      "month": 9,
+      "value": 726.28
+    },
+    {
+      "year": 2010,
+      "month": 10,
+      "value": 714.8
+    },
+    {
+      "year": 2010,
+      "month": 11,
+      "value": 678.925
+    },
+    {
+      "year": 2010,
+      "month": 12,
+      "value": 668.05
+    },
+    {
+      "year": 2011,
+      "month": 1,
+      "value": 727.45
+    },
+    {
+      "year": 2011,
+      "month": 2,
+      "value": 815.55
+    },
+    {
+      "year": 2011,
+      "month": 3,
+      "value": 890.94
+    },
+    {
+      "year": 2011,
+      "month": 4,
+      "value": 905.675
+    },
+    {
+      "year": 2011,
+      "month": 5,
+      "value": 907.725
+    },
+    {
+      "year": 2011,
+      "month": 6,
+      "value": 908.7667
+    },
+    {
+      "year": 2011,
+      "month": 1,
+      "value": 727.45
+    },
+    {
+      "year": 2011,
+      "month": 2,
+      "value": 815.55
+    },
+    {
+      "year": 2011,
+      "month": 3,
+      "value": 890.94
+    },
+    {
+      "year": 2011,
+      "month": 4,
+      "value": 905.675
+    },
+    {
+      "year": 2011,
+      "month": 5,
+      "value": 907.725
+    },
+    {
+      "year": 2011,
+      "month": 6,
+      "value": 901.28
+    },
+    {
+      "year": 2011,
+      "month": 7,
+      "value": 831.25
+    },
+    {
+      "year": 2011,
+      "month": 8,
+      "value": 745.96
+    },
+    {
+      "year": 2011,
+      "month": 9,
+      "value": 676.55
+    },
+    {
+      "year": 2011,
+      "month": 10,
+      "value": 591.925
+    },
+    {
+      "year": 2011,
+      "month": 11,
+      "value": 539.36
+    },
+    {
+      "year": 2011,
+      "month": 12,
+      "value": 499.3
+    },
+    {
+      "year": 2012,
+      "month": 1,
+      "value": 466.025
+    },
+    {
+      "year": 2012,
+      "month": 2,
+      "value": 458.74
+    },
+    {
+      "year": 2012,
+      "month": 3,
+      "value": 469.2
+    },
+    {
+      "year": 2012,
+      "month": 4,
+      "value": 480.425
+    },
+    {
+      "year": 2012,
+      "month": 5,
+      "value": 504.04
+    },
+    {
+      "year": 2012,
+      "month": 6,
+      "value": 506.725
+    },
+    {
+      "year": 2012,
+      "month": 7,
+      "value": 487.6
+    },
+    {
+      "year": 2012,
+      "month": 8,
+      "value": 480.08
+    },
+    {
+      "year": 2012,
+      "month": 9,
+      "value": 474.75
+    },
+    {
+      "year": 2012,
+      "month": 10,
+      "value": 472.4
+    },
+    {
+      "year": 2012,
+      "month": 11,
+      "value": 467.425
+    },
+    {
+      "year": 2012,
+      "month": 12,
+      "value": 460.6667
+    },
+    {
+      "year": 2013,
+      "month": 1,
+      "value": 459.22
+    },
+    {
+      "year": 2013,
+      "month": 2,
+      "value": 470.25
+    },
+    {
+      "year": 2013,
+      "month": 3,
+      "value": 473.55
+    },
+    {
+      "year": 2013,
+      "month": 4,
+      "value": 488.625
+    },
+    {
+      "year": 2013,
+      "month": 5,
+      "value": 494.78
+    },
+    {
+      "year": 2013,
+      "month": 6,
+      "value": 495.325
+    },
+    {
+      "year": 2013,
+      "month": 7,
+      "value": 498.4
+    },
+    {
+      "year": 2013,
+      "month": 8,
+      "value": 502.575
+    },
+    {
+      "year": 2013,
+      "month": 9,
+      "value": 508.725
+    },
+    {
+      "year": 2013,
+      "month": 10,
+      "value": 506.6
+    },
+    {
+      "year": 2013,
+      "month": 11,
+      "value": 499.95
+    },
+    {
+      "year": 2013,
+      "month": 12,
+      "value": 498.9
+    },
+    {
+      "year": 2014,
+      "month": 1,
+      "value": 502.1
+    },
+    {
+      "year": 2014,
+      "month": 2,
+      "value": 505.875
+    },
+    {
+      "year": 2014,
+      "month": 3,
+      "value": 503.9
+    },
+    {
+      "year": 2014,
+      "month": 4,
+      "value": 518.94
+    },
+    {
+      "year": 2014,
+      "month": 5,
+      "value": 531.15
+    },
+    {
+      "year": 2014,
+      "month": 6,
+      "value": 538.95
+    },
+    {
+      "year": 2014,
+      "month": 7,
+      "value": 538.16
+    },
+    {
+      "year": 2014,
+      "month": 8,
+      "value": 533.55
+    },
+    {
+      "year": 2014,
+      "month": 9,
+      "value": 539.375
+    },
+    {
+      "year": 2014,
+      "month": 10,
+      "value": 535.32
+    },
+    {
+      "year": 2014,
+      "month": 11,
+      "value": 542.575
+    },
+    {
+      "year": 2014,
+      "month": 12,
+      "value": 542.775
+    },
+    {
+      "year": 2015,
+      "month": 1,
+      "value": 554.75
+    },
+    {
+      "year": 2015,
+      "month": 2,
+      "value": 581.75
+    },
+    {
+      "year": 2015,
+      "month": 3,
+      "value": 616.225
+    },
+    {
+      "year": 2015,
+      "month": 4,
+      "value": 706.48
+    },
+    {
+      "year": 2015,
+      "month": 5,
+      "value": 770.75
+    },
+    {
+      "year": 2015,
+      "month": 6,
+      "value": 776.8
+    },
+    {
+      "year": 2015,
+      "month": 7,
+      "value": 734.38
+    },
+    {
+      "year": 2015,
+      "month": 8,
+      "value": 679.55
+    },
+    {
+      "year": 2015,
+      "month": 9,
+      "value": 630.1
+    },
+    {
+      "year": 2015,
+      "month": 10,
+      "value": 549.625
+    },
+    {
+      "year": 2015,
+      "month": 11,
+      "value": 490.05
+    },
+    {
+      "year": 2015,
+      "month": 12,
+      "value": 462.225
+    },
+    {
+      "year": 2016,
+      "month": 1,
+      "value": 449.36
+    },
+    {
+      "year": 2016,
+      "month": 2,
+      "value": 447.6
+    },
+    {
+      "year": 2016,
+      "month": 3,
+      "value": 448.98
+    },
+    {
+      "year": 2016,
+      "month": 4,
+      "value": 443.025
+    },
+    {
+      "year": 2016,
+      "month": 5,
+      "value": 447.15
+    },
+    {
+      "year": 2016,
+      "month": 6,
+      "value": 439.9
+    },
+    {
+      "year": 2016,
+      "month": 7,
+      "value": 437.45
+    },
+    {
+      "year": 2016,
+      "month": 8,
+      "value": 426.36
+    },
+    {
+      "year": 2016,
+      "month": 9,
+      "value": 416.15
+    },
+    {
+      "year": 2016,
+      "month": 10,
+      "value": 409.225
+    },
+    {
+      "year": 2016,
+      "month": 11,
+      "value": 400.6
+    },
+    {
+      "year": 2016,
+      "month": 12,
+      "value": 392.5
+    },
+    {
+      "year": 2017,
+      "month": 1,
+      "value": 400.4
+    },
+    {
+      "year": 2017,
+      "month": 2,
+      "value": 411.95
+    },
+    {
+      "year": 2017,
+      "month": 3,
+      "value": 498.68
+    },
+    {
+      "year": 2017,
+      "month": 4,
+      "value": 627.95
+    },
+    {
+      "year": 2017,
+      "month": 5,
+      "value": 626.74
+    },
+    {
+      "year": 2017,
+      "month": 6,
+      "value": 561.625
+    },
+    {
+      "year": 2017,
+      "month": 7,
+      "value": 543.75
+    },
+    {
+      "year": 2017,
+      "month": 8,
+      "value": 586.32
+    },
+    {
+      "year": 2017,
+      "month": 9,
+      "value": 629.075
+    },
+    {
+      "year": 2017,
+      "month": 10,
+      "value": 610.0
+    },
+    {
+      "year": 2017,
+      "month": 11,
+      "value": 588.18
+    },
+    {
+      "year": 2017,
+      "month": 12,
+      "value": 597.3333
+    },
+    {
+      "year": 2018,
+      "month": 1,
+      "value": 628.54
+    },
+    {
+      "year": 2018,
+      "month": 2,
+      "value": 651.5
+    },
+    {
+      "year": 2018,
+      "month": 3,
+      "value": 714.8
+    },
+    {
+      "year": 2018,
+      "month": 4,
+      "value": 768.45
+    },
+    {
+      "year": 2018,
+      "month": 5,
+      "value": 817.08
+    },
+    {
+      "year": 2018,
+      "month": 6,
+      "value": 843.475
+    },
+    {
+      "year": 2018,
+      "month": 7,
+      "value": 816.95
+    },
+    {
+      "year": 2018,
+      "month": 8,
+      "value": 759.64
+    },
+    {
+      "year": 2018,
+      "month": 9,
+      "value": 730.675
+    },
+    {
+      "year": 2018,
+      "month": 10,
+      "value": 675.26
+    },
+    {
+      "year": 2018,
+      "month": 11,
+      "value": 624.325
+    },
+    {
+      "year": 2018,
+      "month": 12,
+      "value": 612.4667
+    },
+    {
+      "year": 2019,
+      "month": 1,
+      "value": 597.96
+    },
+    {
+      "year": 2019,
+      "month": 2,
+      "value": 608.0
+    },
+    {
+      "year": 2019,
+      "month": 3,
+      "value": 630.2475
+    },
+    {
+      "year": 2019,
+      "month": 4,
+      "value": 658.45
+    },
+    {
+      "year": 2019,
+      "month": 5,
+      "value": 675.926
+    },
+    {
+      "year": 2019,
+      "month": 6,
+      "value": 692.375
+    },
+    {
+      "year": 2019,
+      "month": 7,
+      "value": 719.9
+    },
+    {
+      "year": 2019,
+      "month": 8,
+      "value": 769.1
+    },
+    {
+      "year": 2019,
+      "month": 9,
+      "value": 805.0
+    },
+    {
+      "year": 2019,
+      "month": 10,
+      "value": 797.8
+    },
+    {
+      "year": 2019,
+      "month": 11,
+      "value": 780.95
+    },
+    {
+      "year": 2019,
+      "month": 12,
+      "value": 769.8667
+    },
+    {
+      "year": 2020,
+      "month": 1,
+      "value": 768.2
+    },
+    {
+      "year": 2020,
+      "month": 2,
+      "value": 747.35
+    },
+    {
+      "year": 2020,
+      "month": 3,
+      "value": 704.95
+    },
+    {
+      "year": 2020,
+      "month": 4,
+      "value": 658.16
+    },
+    {
+      "year": 2020,
+      "month": 5,
+      "value": 556.65
+    },
+    {
+      "year": 2020,
+      "month": 6,
+      "value": 502.525
+    },
+    {
+      "year": 2020,
+      "month": 7,
+      "value": 538.02
+    },
+    {
+      "year": 2020,
+      "month": 8,
+      "value": 671.925
+    },
+    {
+      "year": 2020,
+      "month": 9,
+      "value": 777.34
+    },
+    {
+      "year": 2020,
+      "month": 10,
+      "value": 871.475
+    },
+    {
+      "year": 2020,
+      "month": 11,
+      "value": 1052.85
+    },
+    {
+      "year": 2020,
+      "month": 12,
+      "value": 1173.45
+    },
+    {
+      "year": 2021,
+      "month": 1,
+      "value": 1245.775
+    },
+    {
+      "year": 2021,
+      "month": 2,
+      "value": 1394.35
+    },
+    {
+      "year": 2021,
+      "month": 3,
+      "value": 1598.12
+    },
+    {
+      "year": 2021,
+      "month": 4,
+      "value": 1854.425
+    },
+    {
+      "year": 2021,
+      "month": 5,
+      "value": 2147.425
+    },
+    {
+      "year": 2021,
+      "month": 6,
+      "value": 2568.76
+    },
+    {
+      "year": 2021,
+      "month": 7,
+      "value": 3355.55
+    },
+    {
+      "year": 2021,
+      "month": 8,
+      "value": 4260.4
+    },
+    {
+      "year": 2021,
+      "month": 9,
+      "value": 4732.3
+    },
+    {
+      "year": 2021,
+      "month": 10,
+      "value": 4769.0
+    },
+    {
+      "year": 2021,
+      "month": 11,
+      "value": 4434.05
+    },
+    {
+      "year": 2021,
+      "month": 12,
+      "value": 4509.0
+    },
+    {
+      "year": 2022,
+      "month": 1,
+      "value": 4813.575
+    },
+    {
+      "year": 2022,
+      "month": 2,
+      "value": 5252.25
+    },
+    {
+      "year": 2022,
+      "month": 3,
+      "value": 5770.84
+    },
+    {
+      "year": 2022,
+      "month": 4,
+      "value": 5715.025
+    },
+    {
+      "year": 2022,
+      "month": 5,
+      "value": 5588.35
+    },
+    {
+      "year": 2022,
+      "month": 6,
+      "value": 5612.96
+    },
+    {
+      "year": 2022,
+      "month": 7,
+      "value": 5488.225
+    },
+    {
+      "year": 2022,
+      "month": 8,
+      "value": 4972.92
+    },
+    {
+      "year": 2022,
+      "month": 9,
+      "value": 3444.95
+    },
+    {
+      "year": 2022,
+      "month": 10,
+      "value": 1836.15
+    },
+    {
+      "year": 2022,
+      "month": 11,
+      "value": 1489.98
+    },
+    {
+      "year": 2022,
+      "month": 12,
+      "value": 1434.1333
+    },
+    {
+      "year": 2023,
+      "month": 1,
+      "value": 1253.9
+    },
+    {
+      "year": 2023,
+      "month": 2,
+      "value": 1199.25
+    },
+    {
+      "year": 2023,
+      "month": 3,
+      "value": 1248.32
+    },
+    {
+      "year": 2023,
+      "month": 4,
+      "value": 1353.55
+    },
+    {
+      "year": 2023,
+      "month": 5,
+      "value": 1407.84
+    },
+    {
+      "year": 2023,
+      "month": 6,
+      "value": 1409.225
+    },
+    {
+      "year": 2023,
+      "month": 7,
+      "value": 1327.65
+    },
+    {
+      "year": 2023,
+      "month": 8,
+      "value": 1244.74
+    },
+    {
+      "year": 2023,
+      "month": 9,
+      "value": 1206.1
+    },
+    {
+      "year": 2023,
+      "month": 10,
+      "value": 1076.25
+    },
+    {
+      "year": 2023,
+      "month": 11,
+      "value": 957.9
+    },
+    {
+      "year": 2023,
+      "month": 12,
+      "value": 927.1333
+    },
+    {
+      "year": 2024,
+      "month": 1,
+      "value": 1019.86
+    },
+    {
+      "year": 2024,
+      "month": 2,
+      "value": 1187.175
+    },
+    {
+      "year": 2024,
+      "month": 3,
+      "value": 1251.6
+    },
+    {
+      "year": 2024,
+      "month": 4,
+      "value": 1305.425
+    },
+    {
+      "year": 2024,
+      "month": 5,
+      "value": 1503.54
+    },
+    {
+      "year": 2024,
+      "month": 6,
+      "value": 1854.925
+    },
+    {
+      "year": 2024,
+      "month": 7,
+      "value": 2090.5
+    },
+    {
+      "year": 2024,
+      "month": 7,
+      "value": 2104.36
+    },
+    {
+      "year": 2024,
+      "month": 8,
+      "value": 2099.875
+    },
+    {
+      "year": 2024,
+      "month": 9,
+      "value": 2072.625
+    },
+    {
+      "year": 2024,
+      "month": 10,
+      "value": 2082.5
+    },
+    {
+      "year": 2024,
+      "month": 11,
+      "value": 2199.65
+    },
+    {
+      "year": 2024,
+      "month": 12,
+      "value": 2263.2333
+    },
+    {
+      "year": 2025,
+      "month": 1,
+      "value": 2314.6
+    },
+    {
+      "year": 2025,
+      "month": 2,
+      "value": 2330.8
+    },
+    {
+      "year": 2025,
+      "month": 3,
+      "value": 2365.025
+    },
+    {
+      "year": 2025,
+      "month": 4,
+      "value": 2445.0
+    },
+    {
+      "year": 2025,
+      "month": 5,
+      "value": 2412.35
+    },
+    {
+      "year": 2025,
+      "month": 6,
+      "value": 2467.4
+    },
+    {
+      "year": 2025,
+      "month": 7,
+      "value": 2496.74
+    },
+    {
+      "year": 2025,
+      "month": 8,
+      "value": 2525.125
+    },
+    {
+      "year": 2025,
+      "month": 9,
+      "value": 2536.3
+    },
+    {
+      "year": 2025,
+      "month": 10,
+      "value": 2537.64
+    },
+    {
+      "year": 2025,
+      "month": 11,
+      "value": 2531.8
+    },
+    {
+      "year": 2025,
+      "month": 12,
+      "value": 2531.175
+    },
+    {
+      "year": 2026,
+      "month": 1,
+      "value": 2559.825
+    },
+    {
+      "year": 2026,
+      "month": 2,
+      "value": 2568.425
+    },
+    {
+      "year": 2026,
+      "month": 3,
+      "value": 2579.125
+    },
+    {
+      "year": 2026,
+      "month": 4,
+      "value": 2632.44
+    }
+  ]
+}

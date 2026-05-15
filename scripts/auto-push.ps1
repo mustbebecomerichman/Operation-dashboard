@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Bumps delay_dashboard.html version (patch +1) when it changed,
@@ -57,6 +57,28 @@ $staged = git diff --cached --name-only
 if (-not $staged) {
     Write-Host "[auto-push] no staged changes after add — nothing to commit"
     exit 0
+}
+
+# Pre-push gate: validate inline JS. Runs the same script GitHub Actions runs,
+# so we catch syntax errors locally before they reach `main`.  Requires `node`.
+$validator = Join-Path $repoRoot 'scripts/validate-html-js.js'
+if (Test-Path -LiteralPath $validator) {
+    $nodeCmd = Get-Command node -ErrorAction SilentlyContinue
+    if ($nodeCmd) {
+        Write-Host "[auto-push] running JS syntax validator…"
+        $priorEAPv = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        $valOut = & node $validator 2>&1
+        $valExit = $LASTEXITCODE
+        $ErrorActionPreference = $priorEAPv
+        $valOut | ForEach-Object { Write-Host "[validator] $_" }
+        if ($valExit -ne 0) {
+            Write-Error "[auto-push] validator failed (exit $valExit) — aborting push. Fix the syntax errors above and re-run."
+            exit $valExit
+        }
+    } else {
+        Write-Host "[auto-push] node not found on PATH — skipping local validator (CI will still gate the push)."
+    }
 }
 
 $fileList = ($staged | ForEach-Object { "  - $_" }) -join "`n"
