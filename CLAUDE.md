@@ -195,6 +195,14 @@ Don't pile session diaries into this file — it should stay evergreen. For per-
 
 ## 10. Recent work log (append-only, newest first)
 
+### 2026-05-19 — auth flow: Apps Script fallback for fresh-browser first login
+- Modified `handleLogin()` to fall back to `?action=getUsers` on the user's Apps Script when the email isn't in this browser's local `pd_u`. Enables testers / new users to log in on a fresh browser without manual admin pre-seeding.
+- Added `DEFAULT_APPS_SCRIPT_URL` constant near CONFIG — leave empty by default, or paste a deployed `/exec` URL to enable the hardcoded fallback (useful for fresh browsers that have never opened the admin panel).
+- Added `_completeLogin()` helper to share post-fetch login logic.
+- Apps Script must implement `doGet(e)` with `?action=getUsers` returning `{users:[{email, role, name}, ...]}`. The Google Sheet must have a "Users" tab with `email | name | role` columns (`viewer`/`reporter`/`admin`).
+- Graceful degradation: on fetch failure or no-match, the old "Email not registered" alert still fires.
+- Verified: all 3 `<script>` blocks parse with `new Function()` (3/3 OK).
+
 ### 2026-05-15 — mojibake cleanup pass
 - Cleaned 45 `??` → proper symbols (✓ ✗ → — · …) across HTML and JS string literals.
 - Restored 20+ emoji icons across Admin Panel, route cards, mobile nav (⚙️ 👥 📤 📥 🔄 💡 🔔 🔍 🛰️ ⚠️ 🔗 🚢 💾 📱 👤 📋 ✏️ 🗺️ 🌐 ➡️).

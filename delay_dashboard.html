@@ -409,10 +409,17 @@ body{font-family:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;backg
   <script>
 
 // ?? CONFIG ??????????????????????????????????????????????????
+// Optional hardcoded fallback for first-login on fresh browsers (testers, new users).
+// If set, handleLogin() can fetch the Users sheet via this URL even when the user
+// hasn't yet configured their own appsScriptUrl in Admin Panel. Leave empty to
+// disable the fallback (auth then requires explicit pre-registration on each browser).
+// To enable: paste your deployed Apps Script /exec URL between the quotes.
+var DEFAULT_APPS_SCRIPT_URL = '';
+
 var CONFIG = {
-    appsScriptUrl: localStorage.getItem('pd_surl') || '',
+    appsScriptUrl: localStorage.getItem('pd_surl') || DEFAULT_APPS_SCRIPT_URL || '',
     adminEmail: 'smmoon@heungaline.com',
-    version: '1.4.8',
+    version: '1.4.9',
     updateUrl: 'https://mustbebecomerichman.github.io/Operation-dashboard/delay_dashboard.html',  // GitHub Pages ??auto-update source
     aisApiKey: '',  // aisstream.io API key — set per-device via Admin Panel (stored in localStorage)
     aisProvider: 'aisstream',  // 'aisstream' | 'datalastic' | 'marinetraffic' | 'vesselfinder'
@@ -509,9 +516,52 @@ function initAuth(){
 function handleLogin(e){
     e.preventDefault();
     var em=document.getElementById('emailIn').value.trim().toLowerCase();
+    if(!em){alert('Please enter an email address.');return;}
     var u=JSON.parse(localStorage.getItem('pd_u')||'{}');
-    if(!u[em]){alert('Email not registered.');return;}
-    sess={email:em,role:u[em].role,name:u[em].name||em.split('@')[0]};
+    // Fast path: user already in this browser's localStorage.
+    if(u[em]){_completeLogin(em,u[em]);return;}
+    // Fallback: pull from Google Sheets "Users" tab via Apps Script.
+    // Enables fresh-browser first login for testers/colleagues without
+    // requiring them to be pre-seeded in localStorage. Requires
+    // CONFIG.appsScriptUrl to be set (in localStorage as pd_surl) and the
+    // Apps Script to implement ?action=getUsers returning {users:[{email,role,name}]}.
+    var url=CONFIG.appsScriptUrl||localStorage.getItem('pd_surl')||DEFAULT_APPS_SCRIPT_URL||'';
+    if(!url){alert('Email not registered.');return;}
+    var btnEl=document.querySelector('#loginOv button[type="submit"]')||document.querySelector('#loginOv button');
+    var prevTxt=btnEl?btnEl.textContent:'';
+    if(btnEl){btnEl.disabled=true;btnEl.textContent='Checking…';}
+    fetch(url+'?action=getUsers',{cache:'no-store'})
+        .then(function(r){return r.json();})
+        .then(function(data){
+            if(btnEl){btnEl.disabled=false;btnEl.textContent=prevTxt;}
+            var rows=(data&&data.users)||[];
+            var match=null;
+            for(var i=0;i<rows.length;i++){
+                if(((rows[i].email||'').toLowerCase().trim())===em){match=rows[i];break;}
+            }
+            if(!match){alert('Email not registered.');return;}
+            var role=(match.role||'viewer').toLowerCase();
+            if(['viewer','reporter','admin'].indexOf(role)<0) role='viewer';
+            var entry={role:role,name:match.name||em.split('@')[0]};
+            u[em]=entry;
+            localStorage.setItem('pd_u',JSON.stringify(u));
+            // Persist the Apps Script URL on this browser so subsequent
+            // operations (live delays, sync, etc.) don't need re-config.
+            if(!CONFIG.appsScriptUrl){
+                CONFIG.appsScriptUrl=url;
+                localStorage.setItem('pd_surl',url);
+            }
+            _completeLogin(em,entry);
+        })
+        .catch(function(err){
+            if(btnEl){btnEl.disabled=false;btnEl.textContent=prevTxt;}
+            console.warn('[handleLogin] Users-sheet fallback failed',err);
+            alert('Email not registered.');
+        });
+}
+
+function _completeLogin(em,entry){
+    sess={email:em,role:entry.role,name:entry.name||em.split('@')[0]};
     localStorage.setItem('pd_ses',JSON.stringify(sess));
     document.getElementById('loginOv').style.display='none';
     showApp();
