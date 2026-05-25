@@ -20,23 +20,30 @@ Other top-level data files (`*.xls`, `*.xlsx`, `data/`) are operational sheets, 
 ## 2. How code flows to production
 
 1. Edit `delay_dashboard.html` locally.
-2. **Stop hook** (`.claude/settings.json` → `scripts/auto-push.ps1`) fires after every Claude turn that left dirty changes:
+2. **Stop hook** (`.claude/settings.json` → `scripts/auto-push.js` → `scripts/auto-push.ps1` on Win, `auto-push.sh` on *nix) fires after every Claude turn that left dirty changes:
    - bumps `CONFIG.version` patch by +1
+   - validates inline JS (`scripts/validate-html-js.js`) — aborts push on syntax errors
    - commits with a message describing the diff
    - pushes to `origin/main`
-   - silently no-ops if the tree is clean (so empty turns don't create empty commits)
-3. GitHub Actions runs `.github/workflows/validate.yml` to lint the HTML/JS.
-4. Each running dashboard's "Check for update" routine detects the new `CONFIG.version` and prompts users to reload.
+   - silently no-ops if the tree is clean
+3. **Two GitHub Actions workflows run in parallel on every push to `main`:**
+   - `validate.yml` — re-lints HTML/JS as a CI gate (mirrors local validator)
+   - `pages.yml` — uploads the repo root via `actions/upload-pages-artifact@v3` and deploys via `actions/deploy-pages@v4`
+4. GitHub Pages goes live in ~30–60s at <https://mustbebecomerichman.github.io/Operation-dashboard/delay_dashboard.html>
+5. Each running dashboard's "Check for update" routine detects the new `CONFIG.version` and prompts users to reload.
 
-**The auto-push hook is currently Windows / PowerShell only.** On a Mac/Linux box, either:
-- run `git add -A && git commit && git push` manually after each Claude session, OR
-- port `scripts/auto-push.ps1` to a `bash` equivalent and update `.claude/settings.json` to invoke the right one per platform (use a conditional `command`).
+**Deployment method**: GitHub Pages source is set to **GitHub Actions** (not the legacy Jekyll build). `.nojekyll` at the repo root keeps any future Jekyll detection inert. The legacy Jekyll build was unreliable for this single-file PWA — it failed silently on the very files it was meant to serve. Don't switch back to the legacy source.
 
-Git remote is HTTPS:
+**Auth setup (per machine)**:
+```bash
+gh auth login                              # authenticate as mustbebecomerichman
+gh auth switch --user mustbebecomerichman  # if multiple accounts in keyring
+git config user.name "mustbebecomerichman"
+git config user.email "mustbebecomerichman@users.noreply.github.com"
 ```
-origin  https://github.com/mustbebecomerichman/Operation-dashboard.git
-```
-On a new machine you'll need a GitHub PAT or `gh auth login` so the auto-push can push without prompting.
+If `git push` returns 403 to `chartersuperman` (or any non-owner), you forgot `gh auth switch`. Confirm with `gh auth status | head -3`.
+
+**Editing workflow files (`.github/workflows/*.yml`)**: regular `git push` of workflow changes can return HTTP 500 ("Internal Server Error") even with `workflow` token scope. Workaround: use the Contents API via `gh api -X PUT repos/.../contents/path -f content="$(base64 file)"` — server-side commits bypass the push restriction. Pulled back with `git fetch && git reset --hard origin/main`.
 
 ---
 
@@ -193,6 +200,15 @@ Don't pile session diaries into this file — it should stay evergreen. For per-
 ---
 
 ## 10. Recent work log (append-only, newest first)
+
+### 2026-05-25 — Pages: legacy Jekyll → GitHub Actions deployment
+- Diagnosed: legacy Pages classic builds had been failing silently for the past 3 versions (v1.4.8, v1.4.9 errored with `duration: 0`). Active gh CLI account was `chartersuperman` (no push permission to `mustbebecomerichman/Operation-dashboard`), so the Stop hook's `git push` was silently failing too — local commits piled up unpushed.
+- Switched git auth: `gh auth switch --user mustbebecomerichman` + `git config user.name/email` to match. Both accounts were already in the keyring.
+- Added `.nojekyll` to disable Jekyll processing.
+- Added `.github/workflows/pages.yml` using `actions/configure-pages@v5` + `actions/upload-pages-artifact@v3` + `actions/deploy-pages@v4`.
+- Switched Pages source from `legacy` to `workflow` via `gh api -X PUT repos/.../pages -f build_type=workflow`.
+- Workflow-file pushes returned 500 ISE despite `workflow` token scope — used Contents API as workaround (see §2). Future workflow edits will need this same path.
+- Verified end-to-end: pushed → workflow ran (success) → live URL serves v1.4.10 with correct Korean (`"중국 PQS"`, `"manager": "장명준"`, etc.) and zero mojibake.
 
 ### 2026-05-25 — mojibake fully resolved (ROUTES / VESSELS / SVC_INFO + comments)
 - Discovered the initial commit `37dd2f4` still had **correct UTF-8 Korean** for ROUTES (route names + manager/backup), VESSELS (`owner: 사선/용선`), and SVC_INFO (~80 service entries with managers). Structure (keys / vessel codes / svc IDs) was byte-identical to current, only the Korean strings had been corrupted in a later encoding pass.
