@@ -113,25 +113,24 @@ After modifying the proxy code, you **must redeploy** (Deploy → Manage deploym
 
 ---
 
-## 5. Intentionally-kept mojibake (do NOT "fix")
+## 5. Encoding hygiene
 
-These regions still have garbled bytes but are deliberate skips:
+As of the 2026-05-25 restoration pass, **all known mojibake is resolved**. ROUTES, VESSELS, and SVC_INFO Korean data plus ~10 JS comments were restored from the initial commit (`37dd2f4`) — the original bytes were never lost in git history, only in the current working copy.
 
-| Location | Why |
-|---|---|
-| `delay_dashboard.html` line 426 (`var ROUTES = {...}`) | Korean manager / route names — business data. Restoring requires the source of truth, not guessing. |
-| `delay_dashboard.html` line 429 (`var SVC_INFO = [...]`) | Same — Korean manager names. |
-| ~12 JS comments throughout the file (lines 416, 470, 554, 625, 963, 1029, 1031, 1234, 1239, 1258, 1487, 1686) | Not user-visible. Touching them risks misinterpreting intent. |
+If new mojibake appears (`??` patterns, `?<korean-syllable>`, `�` U+FFFD characters):
+1. Don't guess the original — check `git show 37dd2f4:delay_dashboard.html` first; the structure is identical so line numbers may have shifted but the strings can usually be matched by surrounding ASCII context.
+2. Use Node to do the replacement so BOM (`EF BB BF`) is preserved.
+3. Verify with the script-block parse check (§3) — expect `Scripts: 3 Failures: 0`.
 
-Everything **user-visible** (HTML body text, JS string literals that surface in the UI) was cleaned up in the 2026-05 pass. Emojis used:
-✓ ✗ → — · … ↻ ⚙️ 👥 📤 📥 🔄 💡 🔔 🔍 🛰️ ⚠️ 🔗 🚢 💾 📱 👤 📋 ✏️ 🗺️ 🌐 ➡️ ✕
+Emojis used in the file (UTF-8, all valid):
+✓ ✗ → — – · … ↻ ⚙️ 👥 📤 📥 🔄 💡 🔔 🔍 🛰️ ⚠️ 🔗 🚢 💾 📱 👤 📋 ✏️ 🗺️ 🌐 ➡️ ✕ ──
 
 ---
 
 ## 6. Conventions for this codebase
 
 - **Don't touch** `CONFIG` defaults, auth logic, or `apps-script/seavantage-proxy.gs` unless the task is explicitly about them.
-- **Don't touch** `ROUTES` / `SVC_INFO` JSON blobs — they're business data with separate Korean mojibake. If a route definition needs to change, the user updates it via the source spreadsheet, not by editing the HTML directly.
+- `ROUTES` / `VESSELS` / `SVC_INFO` are business data — read freely, but only edit when the user explicitly asks to update a route, vessel, or service-manager assignment. The source of truth is the user's spreadsheet; the HTML mirrors it.
 - The HTML is a single file by design (PWA installability). Resist splitting it without an explicit ask.
 - Inline styles are used heavily — match the existing style rather than refactoring to classes.
 - The Stop hook commits *everything dirty* in one commit per Claude turn. If you need separate commits, instruct the user to run them manually.
@@ -194,6 +193,13 @@ Don't pile session diaries into this file — it should stay evergreen. For per-
 ---
 
 ## 10. Recent work log (append-only, newest first)
+
+### 2026-05-25 — mojibake fully resolved (ROUTES / VESSELS / SVC_INFO + comments)
+- Discovered the initial commit `37dd2f4` still had **correct UTF-8 Korean** for ROUTES (route names + manager/backup), VESSELS (`owner: 사선/용선`), and SVC_INFO (~80 service entries with managers). Structure (keys / vessel codes / svc IDs) was byte-identical to current, only the Korean strings had been corrupted in a later encoding pass.
+- Restored 3 data lines (433 `ROUTES`, 435 `VESSELS`, 436 `SVC_INFO`) by copying the exact lines from the initial commit via Node — BOM preserved (`EF BB BF`).
+- Fixed 10 JS comment mojibake patterns (lines 423, 477, 604, 675, 1013, 1079, 1081, 1284, 1537, 1736): restored `—` / `–` / `→` / `──` separators and the Korean comment `// ── Map 항적선: coords[] WP 직접 사용 (실제 항행 경로) ──`.
+- Updated §5 and §6: removed the "do NOT fix" warnings — they were based on the (incorrect) assumption that the original Korean was lost. Now §5 is general encoding hygiene guidance.
+- Verified: all 3 `<script>` blocks parse with `new Function()` (3/3 OK). Zero `??` and zero `U+FFFD` characters remain.
 
 ### 2026-05-19 — auth flow: Apps Script fallback for fresh-browser first login
 - Modified `handleLogin()` to fall back to `?action=getUsers` on the user's Apps Script when the email isn't in this browser's local `pd_u`. Enables testers / new users to log in on a fresh browser without manual admin pre-seeding.
