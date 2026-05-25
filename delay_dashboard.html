@@ -346,6 +346,24 @@ body{font-family:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;backg
     </select>
     <button class="bok" onclick="inspectSv('sv_zone_section',{zoneSection:document.getElementById('svZoneSection').value})" style="font-size:11px;padding:3px 8px">Zone Section</button>
    </div>
+   <!-- Bulk-register Schedule Code non-own vessels (one-time setup) -->
+   <div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--border)">
+    <div style="font-size:11px;color:var(--muted);margin-bottom:4px">
+     <b style="color:#7c3aed">Bulk register Schedule Code vessels</b> — one-time setup so SeaVantage tracks every ship in <code>data/sched-non-own.json</code> (488 non-own vessels). Each IMO is searched, then registered in batches of 50.
+    </div>
+    <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
+     <button class="bok" onclick="previewBulkRegister()" style="font-size:11px;padding:3px 8px">Preview list</button>
+     <button class="bprim" onclick="bulkRegisterScheduleVessels()" style="font-size:11px;padding:3px 8px;background:#7c3aed">Register 488 vessels</button>
+     <button class="bok" onclick="bulkUnregisterScheduleVessels()" style="font-size:11px;padding:3px 8px;background:#fee2e2;color:#991b1b;border-color:#fecaca" title="Reverses the bulk-register — useful if you want to clean up the workspace">Unregister all</button>
+     <span id="svBulkMsg" style="font-size:11px;color:var(--muted)"></span>
+    </div>
+    <div id="svBulkProg" style="display:none;margin-top:6px;font-size:11px">
+     <div style="background:#e2e8f0;border-radius:4px;height:6px;overflow:hidden">
+      <div id="svBulkProgBar" style="background:#7c3aed;height:100%;width:0;transition:width .2s"></div>
+     </div>
+     <div id="svBulkProgText" style="margin-top:3px;color:var(--muted)"></div>
+    </div>
+   </div>
    <pre id="svTestOut" style="display:none;margin-top:8px;padding:8px;background:#0f172a;color:#e2e8f0;font-size:11px;border-radius:4px;max-height:240px;overflow:auto;white-space:pre-wrap;word-break:break-all"></pre>
   </div>
   <div class="asec" id="vassignSec">
@@ -379,7 +397,6 @@ body{font-family:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;backg
  <div class="hdr-title">Operation Dashboard</div>
  <div class="hdr-right">
   <div class="live-pill"><div class="live-dot" id="ldot"></div><span id="lstat">Offline</span></div>
-  <a class="hdr-btn" href="hrci.html" style="text-decoration:none">HRCI Index</a>
   <div class="hdr-btn" id="uinfo" style="cursor:default"></div>
   <button class="hdr-btn" id="adminBtn" style="display:none" onclick="showAdmin()">⚙️ Admin</button>
   <button id="pwaInstallBtn" class="hdr-btn" onclick="installPWA()" style="display:none">📱 Install App</button><button class="hdr-btn" onclick="doLogout()">Sign Out</button>
@@ -433,7 +450,7 @@ var DEFAULT_APPS_SCRIPT_URL = '';
 var CONFIG = {
     appsScriptUrl: localStorage.getItem('pd_surl') || DEFAULT_APPS_SCRIPT_URL || '',
     adminEmail: 'smmoon@heungaline.com',
-    version: '1.4.11',
+    version: '1.4.12',
     updateUrl: 'https://mustbebecomerichman.github.io/Operation-dashboard/delay_dashboard.html',  // GitHub Pages — auto-update source
     aisApiKey: '',  // aisstream.io API key — set per-device via Admin Panel (stored in localStorage)
     aisProvider: 'aisstream',  // 'aisstream' | 'datalastic' | 'marinetraffic' | 'vesselfinder'
@@ -1354,12 +1371,26 @@ function showRoute(svcId){
     showVesselsOnMap(svcId);
 }
 
-function renderVesselTab(){
+// Returns a size score used to sort vessels largest-first.
+// Priority: TEU (container ships) → DWT (bulk/tank) → GT → LOA. NaN falls to 0.
+function vesselSize(v){
+    return Number(v.teu)||Number(v.dwt)||Number(v.gt)||Number(v.loa)||0;
+}
+// Renders only the vessel cards. The search <input> is rendered ONCE by the
+// scaffold below (renderVesselTabScaffold) and stays in the DOM, so typing
+// doesn't destroy focus.
+function renderVesselCards(){
     var q=((document.getElementById('vvs')||{}).value||'').toLowerCase();
     var effectiveV=getEffectiveVessels();
-    var allSvcs=Object.keys(effectiveV).sort();
-    var h='<input class="ssearch" id="vvs" placeholder="🔍 Search vessels (name/code/route)..." oninput="renderVesselTab()" style="margin-bottom:10px">'+
-          '<div id="vesselCards">';
+    // Sort services by their largest vessel's size desc (so service with the
+    // biggest ship appears first — matches "큰 선박부터 나열"). Tiebreak by svc code.
+    var allSvcs=Object.keys(effectiveV).sort(function(a,b){
+        var maxA=Math.max.apply(null,(effectiveV[a]||[]).map(vesselSize).concat(0));
+        var maxB=Math.max.apply(null,(effectiveV[b]||[]).map(vesselSize).concat(0));
+        if(maxB!==maxA) return maxB-maxA;
+        return a.localeCompare(b);
+    });
+    var h='';
     var shown=0;
     allSvcs.forEach(function(svc){
         var vlist=effectiveV[svc];
@@ -1371,6 +1402,8 @@ function renderVesselTab(){
             return v.code.toLowerCase().includes(q)||v.name.toLowerCase().includes(q)||svc.toLowerCase().includes(q);
         });
         if(!filtered.length)return;
+        // Within each service, sort by size desc.
+        filtered.sort(function(a,b){return vesselSize(b)-vesselSize(a);});
         shown++;
         h+='<div class="vc-group" style="margin-bottom:14px">'+
            '<div class="vc-head" style="border-left:3px solid '+col+';padding:4px 8px;background:#f8fafc;margin-bottom:6px">'+
@@ -1400,17 +1433,25 @@ function renderVesselTab(){
                (v.imo?' · IMO '+v.imo:'')+
                '</div>'+
                '</div>'+
-               '<div style="font-size:10px;color:#94a3b8;align-self:center">➡️/div>'+
+               '<div style="font-size:10px;color:#94a3b8;align-self:center">➡️</div>'+
                '</div>';
         });
         h+='</div>';
     });
-    if(!shown)h+='<div class="nodata">No results found</div>';
-    h+='</div>';
-    document.getElementById('scont').innerHTML=h;
-    // re-bind oninput after innerHTML replace
-    var inp=document.getElementById('vvs');
-    if(inp)inp.oninput=renderVesselTab;
+    if(!shown)h='<div class="nodata">No results found</div>';
+    document.getElementById('vesselCards').innerHTML=h;
+}
+// Tab scaffold: built once when the Vessel tab is shown. Holds the search input
+// (which stays mounted, preserving focus across keystrokes) plus an empty
+// #vesselCards container that renderVesselCards() refills.
+function renderVesselTab(){
+    var cont=document.getElementById('scont');
+    if(!document.getElementById('vesselCards')){
+        cont.innerHTML='<input class="ssearch" id="vvs" placeholder="🔍 Search vessels (name/code/route)..." style="margin-bottom:10px">'+
+                      '<div id="vesselCards"></div>';
+        document.getElementById('vvs').addEventListener('input',renderVesselCards);
+    }
+    renderVesselCards();
 }
 
 function showVesselModal(svc, idx){
@@ -2261,6 +2302,166 @@ function loadSvAllShipsToMap(){
         msg.style.color='var(--danger)';
         msg.textContent='✗ '+err.message;
         if(out) out.textContent=String(err.stack||err.message)+(err.detail?'\n\n'+JSON.stringify(err.detail,null,2):'');
+    });
+}
+// ── SCHEDULE-CODE BULK REGISTRATION ─────────────────────────────────────────
+// Cached list loaded lazily from data/sched-non-own.json. Built by
+// scripts/build-sched-non-own.py from Schedule Code × Vessel Code Excel.
+var svBulkList=null;
+function loadSvBulkList(){
+    if(svBulkList) return Promise.resolve(svBulkList);
+    return fetch('data/sched-non-own.json',{cache:'no-store'}).then(function(r){
+        if(!r.ok) throw new Error('Could not load data/sched-non-own.json (HTTP '+r.status+'). Run scripts/build-sched-non-own.py to regenerate.');
+        return r.json();
+    }).then(function(arr){svBulkList=arr; return arr;});
+}
+function svBulkSetMsg(text,color){
+    var m=document.getElementById('svBulkMsg');
+    if(m){m.textContent=text; m.style.color=color||'var(--muted)';}
+}
+function svBulkSetProgress(done,total,label){
+    var prog=document.getElementById('svBulkProg');
+    var bar=document.getElementById('svBulkProgBar');
+    var txt=document.getElementById('svBulkProgText');
+    if(!prog) return;
+    if(total<=0){prog.style.display='none'; return;}
+    prog.style.display='block';
+    var pct=Math.round(100*done/total);
+    bar.style.width=pct+'%';
+    txt.textContent=(label||'')+' '+done+' / '+total+' ('+pct+'%)';
+}
+function previewBulkRegister(){
+    svBulkSetMsg('Loading list…');
+    loadSvBulkList().then(function(list){
+        var out=document.getElementById('svTestOut');
+        out.style.display='block';
+        var preview=list.slice(0,20).map(function(v){return v.code+' IMO='+v.imo+' '+v.name+' ('+(v.services||[]).join(',')+')';});
+        out.textContent='Total non-own vessels to register: '+list.length+'\n\nFirst 20:\n'+preview.join('\n')+(list.length>20?'\n…':'');
+        svBulkSetMsg('✓ Loaded '+list.length+' vessels','var(--ok)');
+    }).catch(function(err){
+        svBulkSetMsg('✗ '+err.message,'var(--danger)');
+    });
+}
+// Look up shipId UUIDs for each IMO via sv_search, then register them in
+// batches via sv_register. Sequential to respect SeaVantage rate limits.
+function bulkRegisterScheduleVessels(){
+    if(!CONFIG.seavantageProxyUrl||!CONFIG.seavantageToken){
+        svBulkSetMsg('✗ Configure SeaVantage proxy first','var(--danger)');
+        return;
+    }
+    loadSvBulkList().then(function(list){
+        if(!list.length){svBulkSetMsg('Empty list — nothing to register','var(--muted)'); return;}
+        if(!confirm('Register '+list.length+' vessels in the SeaVantage workspace?\n\nThis searches each IMO ('+list.length+' API calls) and registers found shipIds in batches of 50. Takes roughly '+Math.ceil(list.length*0.3/60)+' minutes.')) return;
+        var out=document.getElementById('svTestOut');
+        out.style.display='block'; out.textContent='Starting bulk register…';
+        var resolved=[], failed=[], lookupCount=0;
+        // Phase 1: IMO -> shipId via sv_search (serial to stay polite)
+        var chain=Promise.resolve();
+        list.forEach(function(v){
+            chain=chain.then(function(){
+                return callSV('sv_search',{keyword:v.imo}).then(function(data){
+                    // sv_search returns an array of ship matches; pick the one whose imoNo matches exactly
+                    var arr=Array.isArray(data)?data:(data&&data.response)||[];
+                    var match=arr.find(function(s){return String(s.imoNo||s.imo||'')===String(v.imo);})||arr[0];
+                    if(match&&match.shipId){
+                        resolved.push({shipId:match.shipId,code:v.code,name:v.name,imo:v.imo});
+                    } else {
+                        failed.push({code:v.code,imo:v.imo,reason:'no match'});
+                    }
+                }).catch(function(err){
+                    failed.push({code:v.code,imo:v.imo,reason:err.message});
+                }).then(function(){
+                    lookupCount++;
+                    svBulkSetProgress(lookupCount,list.length,'Searching IMOs');
+                });
+            });
+        });
+        // Phase 2: batch register
+        chain=chain.then(function(){
+            if(!resolved.length){
+                svBulkSetMsg('✗ No vessels could be resolved','var(--danger)');
+                out.textContent='Lookup phase: 0 / '+list.length+' resolved.\n\nFailures (first 30):\n'+failed.slice(0,30).map(function(f){return f.code+' '+f.imo+': '+f.reason;}).join('\n');
+                return;
+            }
+            svBulkSetMsg('Phase 2: registering '+resolved.length+' shipIds…','var(--muted)');
+            var BATCH=50;
+            var batches=[];
+            for(var i=0;i<resolved.length;i+=BATCH) batches.push(resolved.slice(i,i+BATCH));
+            var registered=0, batchErrors=[];
+            var c2=Promise.resolve();
+            batches.forEach(function(batch,bi){
+                c2=c2.then(function(){
+                    var ids=batch.map(function(b){return b.shipId;});
+                    return callSV('sv_register',{},{method:'POST',body:ids}).then(function(){
+                        registered+=batch.length;
+                        svBulkSetProgress(registered,resolved.length,'Registering');
+                    }).catch(function(err){
+                        batchErrors.push('Batch '+bi+': '+err.message);
+                    });
+                });
+            });
+            return c2.then(function(){
+                svBulkSetMsg('✓ Registered '+registered+' / '+resolved.length+(failed.length?' (lookup failed: '+failed.length+')':''),registered===resolved.length?'var(--ok)':'var(--warn)');
+                out.textContent='Resolved (IMO→shipId): '+resolved.length+'/'+list.length+'\n'+
+                                'Registered: '+registered+'\n'+
+                                'Lookup failures: '+failed.length+'\n'+
+                                'Batch failures: '+batchErrors.length+'\n\n'+
+                                (failed.length?'Lookup failures (first 20):\n'+failed.slice(0,20).map(function(f){return f.code+' '+f.imo+': '+f.reason;}).join('\n')+'\n\n':'')+
+                                (batchErrors.length?'Batch errors:\n'+batchErrors.join('\n'):'')+
+                                '\n\nNext: click "Load All Ships" to see them on the map.';
+                svBulkSetProgress(0,0,'');
+            });
+        });
+    }).catch(function(err){
+        svBulkSetMsg('✗ '+err.message,'var(--danger)');
+    });
+}
+// Reverse: unregister every vessel in data/sched-non-own.json from the workspace.
+function bulkUnregisterScheduleVessels(){
+    if(!CONFIG.seavantageProxyUrl||!CONFIG.seavantageToken){
+        svBulkSetMsg('✗ Configure SeaVantage proxy first','var(--danger)');
+        return;
+    }
+    loadSvBulkList().then(function(list){
+        if(!confirm('Unregister '+list.length+' vessels from the SeaVantage workspace?\n\nThis removes them from /fleet (positions stop being tracked). Reversible by clicking "Register 488 vessels" again.')) return;
+        // Same shipId-lookup phase as register, then DELETE /fleet
+        var out=document.getElementById('svTestOut');
+        out.style.display='block'; out.textContent='Starting bulk unregister…';
+        var resolved=[], failed=[], lookupCount=0;
+        var chain=Promise.resolve();
+        list.forEach(function(v){
+            chain=chain.then(function(){
+                return callSV('sv_search',{keyword:v.imo}).then(function(data){
+                    var arr=Array.isArray(data)?data:(data&&data.response)||[];
+                    var match=arr.find(function(s){return String(s.imoNo||s.imo||'')===String(v.imo);})||arr[0];
+                    if(match&&match.shipId) resolved.push(match.shipId);
+                    else failed.push(v.code+' '+v.imo+': no match');
+                }).catch(function(err){failed.push(v.code+' '+v.imo+': '+err.message);}).then(function(){
+                    lookupCount++; svBulkSetProgress(lookupCount,list.length,'Searching IMOs');
+                });
+            });
+        });
+        chain=chain.then(function(){
+            if(!resolved.length){svBulkSetMsg('Nothing to unregister','var(--muted)'); return;}
+            svBulkSetMsg('Unregistering '+resolved.length+' shipIds…','var(--muted)');
+            var BATCH=50, removed=0, errs=[];
+            var batches=[]; for(var i=0;i<resolved.length;i+=BATCH) batches.push(resolved.slice(i,i+BATCH));
+            var c2=Promise.resolve();
+            batches.forEach(function(b,bi){
+                c2=c2.then(function(){
+                    // POST to proxy — proxy then issues DELETE /fleet to SeaVantage with the body.
+                    // Apps Script Web Apps only support doGet/doPost, so we can't DELETE the proxy itself.
+                    return callSV('sv_unregister',{},{method:'POST',body:b}).then(function(){
+                        removed+=b.length; svBulkSetProgress(removed,resolved.length,'Unregistering');
+                    }).catch(function(err){errs.push('Batch '+bi+': '+err.message);});
+                });
+            });
+            return c2.then(function(){
+                svBulkSetMsg('✓ Unregistered '+removed+(errs.length?' ('+errs.length+' batch errors)':''),'var(--ok)');
+                out.textContent='Unregistered: '+removed+' / '+resolved.length+'\nLookup failures: '+failed.length+'\nBatch failures: '+errs.length;
+                svBulkSetProgress(0,0,'');
+            });
+        });
     });
 }
 // Wrapper around sv_ship_delete with a confirm() guard — this permanently removes

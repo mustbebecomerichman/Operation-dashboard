@@ -221,6 +221,28 @@ Don't pile session diaries into this file — it should stay evergreen. For per-
 
 ## 10. Recent work log (append-only, newest first)
 
+### 2026-05-25 — Vessel UI bugs · HRCI extracted · Schedule Code bulk-register
+Three independent fixes in one turn.
+
+**Vessel tab** ([delay_dashboard.html:1357–1430](delay_dashboard.html)):
+- Fixed broken `</div>` closing tag on the arrow indicator (was rendered as `'➡️/div>'` — HTML-parser tried to recover, which is partly why the surrounding layout flickered).
+- Fixed search-box typing — the input was being recreated on every keystroke because `oninput` ran `renderVesselTab()` which `innerHTML`-replaced the container holding the input itself. Split into `renderVesselTab()` (scaffold, runs once) + `renderVesselCards()` (refills only `#vesselCards`). Input now persists, focus is preserved.
+- Sorted vessels by size desc — `vesselSize()` returns TEU → DWT → GT → LOA → 0 fallback. Services are also sorted by their largest vessel's size, so the biggest ship's service appears first.
+
+**HRCI extraction**:
+- Removed `<a href="hrci.html">HRCI Index</a>` from the header.
+- Deleted `hrci.html`, `data/hrci-timeline.json`, `data/hrci-vessel-categories.json` from this repo.
+- Copied the same data files to `~/cci-dashboard/public/data/` (Next.js public folder, fetchable from the client) and the reference HTML to `~/cci-dashboard/docs/hrci-reference.html` so the user can port it to a Next.js route at `/hr-index`.
+
+**Schedule Code bulk-register diagnosis & fix**:
+- Diagnosis: `VESSELS` dictionary in the dashboard covered only 70 vessels (mostly own/사선). `Schedule Code_2026-03-31.xls` lists 618 unique vessel codes (56 own + 562 non-own); 542 of the non-own ones were missing from `VESSELS` and therefore filtered out of AIS subscription — they couldn't appear on the map even when in the bounding box. SeaVantage `sv_ship_snapshot` only returns workspace-registered ships, which also excluded these.
+- Solution: bulk register the missing IMOs into the SeaVantage workspace.
+- Added [scripts/build-sched-non-own.py](scripts/build-sched-non-own.py): cross-references `Schedule Code_*.xls` (column `OWN`) against `Vessel Code_*.xls` (column `IMO Number`) and emits `data/sched-non-own.json` — 488 non-own vessels with valid 7-digit IMOs. Run after each Schedule/Vessel Code drop.
+- Added Admin Panel "Bulk register Schedule Code vessels" block ([delay_dashboard.html:343–360](delay_dashboard.html)) with Preview / Register / Unregister buttons + progress bar.
+- Added [delay_dashboard.html:2231–2348](delay_dashboard.html) bulk-register JS: phase 1 calls `sv_search?keyword=<IMO>` per vessel (sequential to respect rate limits) → collects `shipId` UUIDs → phase 2 calls `sv_register` in batches of 50 with the UUID array as POST body. `bulkUnregisterScheduleVessels()` mirrors the path for cleanup.
+- **Apps Script Web Apps only support `doGet`/`doPost`** — DELETE from the browser is impossible. All proxy calls with bodies use `method:'POST'`; the proxy then issues the correct method (DELETE for `/fleet` unregister) to SeaVantage.
+- Verified: all 3 `<script>` blocks parse with `new Function()` (3/3 OK).
+
 ### 2026-05-25 — SeaVantage proxy: added 5 new actions (Ship + Zone APIs)
 - Added `sv_ship_snapshot` (`GET /ship/snapshot`), `sv_ship_area` (`GET /ship/position/area`), `sv_ship_delete` (`DELETE /ship?shipId=`), `sv_zones` (`GET /zone/all`), `sv_zone_section` (`GET /zone/{section}`) to `apps-script/seavantage-proxy.gs::handle()`.
 - Dashboard client (`delay_dashboard.html`): added `loadSvAllShipsToMap()` — uses `sv_ship_snapshot` so no fleet category is required (sky-blue markers, distinct from green `loadSvFleetToMap`). Added `confirmSvShipDelete()` with `confirm()` guard for the destructive DELETE action.
