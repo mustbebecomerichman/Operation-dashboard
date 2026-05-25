@@ -93,17 +93,37 @@ The proxy code (`apps-script/seavantage-proxy.gs`, 171 lines) is complete and th
 ### Available proxy actions
 Defined in `seavantage-proxy.gs::handle()`. Adding a new endpoint = add a `case 'sv_<name>'` branch.
 
+**Ship API**
 | action | SeaVantage path | params |
 |---|---|---|
-| `sv_search` | `/ship/search` | `keyword` |
-| `sv_pasttrack` | `/ship/past-track/from-last-port` | `shipId` |
-| `sv_snapshot` | `/fleet/snapshot` | `categoryId`, `shipId` |
-| `sv_info` | `/fleet/info` | `categoryId`, `shipId` |
-| `sv_categories` | `/fleet/categories` | — |
+| `sv_search` | `GET /ship/search` | `keyword` (IMO/MMSI/name) |
+| `sv_pasttrack` | `GET /ship/past-track/from-last-port` | `shipId` |
+| `sv_ship_snapshot` | `GET /ship/snapshot` | — (all tracked vessels) |
+| `sv_ship_area` | `GET /ship/position/area` | — (ships inside any predefined zone) |
+| `sv_ship_delete` | `DELETE /ship` | `shipId` |
+
+**Fleet API**
+| action | SeaVantage path | params |
+|---|---|---|
+| `sv_snapshot` | `GET /fleet/snapshot` | `categoryId`, `shipId` |
+| `sv_info` | `GET /fleet/info` | `categoryId`, `shipId` |
+| `sv_categories` | `GET /fleet/categories` | — |
 | `sv_register` | `POST /fleet` | `categoryId` + JSON body |
 | `sv_unregister` | `DELETE /fleet` | `categoryId` + JSON body |
-| `sv_portcall` | `/port-call/{shipId}` | `from`, `to` |
+
+**Zone API**
+| action | SeaVantage path | params |
+|---|---|---|
+| `sv_zones` | `GET /zone/all` | — |
+| `sv_zone_section` | `GET /zone/{section}` | `zoneSection` ∈ {`HRA`, `ECA`, `JWC`, `CUSTOM_ZONE`} |
+
+**Port-call / Route**
+| action | SeaVantage path | params |
+|---|---|---|
+| `sv_portcall` | `GET /port-call/{shipId}` | `from`, `to` |
 | `sv_route` | `POST /route/ship-to-port` | `imoNo`, `portId` + JSON body |
+
+**After modifying `seavantage-proxy.gs` you MUST redeploy via Apps Script Deploy → Manage deployments → ✏️ → New version.** The existing `/exec` URL keeps serving the previous code until you do.
 
 ### Common failure patterns (Test Connection output)
 
@@ -200,6 +220,14 @@ Don't pile session diaries into this file — it should stay evergreen. For per-
 ---
 
 ## 10. Recent work log (append-only, newest first)
+
+### 2026-05-25 — SeaVantage proxy: added 5 new actions (Ship + Zone APIs)
+- Added `sv_ship_snapshot` (`GET /ship/snapshot`), `sv_ship_area` (`GET /ship/position/area`), `sv_ship_delete` (`DELETE /ship?shipId=`), `sv_zones` (`GET /zone/all`), `sv_zone_section` (`GET /zone/{section}`) to `apps-script/seavantage-proxy.gs::handle()`.
+- Dashboard client (`delay_dashboard.html`): added `loadSvAllShipsToMap()` — uses `sv_ship_snapshot` so no fleet category is required (sky-blue markers, distinct from green `loadSvFleetToMap`). Added `confirmSvShipDelete()` with `confirm()` guard for the destructive DELETE action.
+- Admin Panel: added "Load All Ships" primary button, plus inspect buttons for the 4 new read endpoints and a `<select>` for zone section (HRA/ECA/JWC/CUSTOM_ZONE).
+- §4 updated: action table now grouped by API (Ship / Fleet / Zone / Port-call / Route), and reminded that proxy edits require a **new Apps Script deployment** before the `/exec` URL serves the new code.
+- `svFlattenEntry()` already handled the `{shipId, position:{...}}` shape used by `/ship/snapshot`, so no schema-normalization changes needed.
+- Verified: all 3 `<script>` blocks parse with `new Function()` (3/3 OK).
 
 ### 2026-05-25 — Pages: legacy Jekyll → GitHub Actions deployment
 - Diagnosed: legacy Pages classic builds had been failing silently for the past 3 versions (v1.4.8, v1.4.9 errored with `duration: 0`). Active gh CLI account was `chartersuperman` (no push permission to `mustbebecomerichman/Operation-dashboard`), so the Stop hook's `git push` was silently failing too — local commits piled up unpushed.

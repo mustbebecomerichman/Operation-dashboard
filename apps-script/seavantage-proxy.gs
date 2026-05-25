@@ -68,6 +68,25 @@ function handle(e, body) {
         return jsonOut(svFetch('/ship/search', { qs: { keyword: e.parameter.keyword } }));
       case 'sv_pasttrack':
         return jsonOut(svFetch('/ship/past-track/from-last-port', { qs: { shipId: e.parameter.shipId } }));
+      case 'sv_ship_snapshot':
+        // No params — returns positions of ALL tracked vessels in the workspace.
+        return jsonOut(svFetch('/ship/snapshot'));
+      case 'sv_ship_area':
+        // No params — returns vessels inside any predefined zone in the workspace.
+        return jsonOut(svFetch('/ship/position/area'));
+      case 'sv_ship_delete':
+        // Removes a single ship from the workspace. shipId is required (UUID).
+        return jsonOut(svFetch('/ship', {
+          method: 'delete',
+          qs: pick(e.parameter, ['shipId'])
+        }));
+
+      // Zone API
+      case 'sv_zones':
+        return jsonOut(svFetch('/zone/all'));
+      case 'sv_zone_section':
+        // zoneSection ∈ {HRA, ECA, JWC, CUSTOM_ZONE}
+        return jsonOut(svFetch('/zone/' + encodeURIComponent(e.parameter.zoneSection || '')));
 
       // Fleet API
       case 'sv_snapshot':

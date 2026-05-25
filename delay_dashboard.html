@@ -320,17 +320,31 @@ body{font-family:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;backg
    </div>
    <div style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap">
     <button class="bprim" onclick="testSvConnection()" style="font-size:12px">Test Connection</button>
-    <button class="bprim" onclick="loadSvFleetToMap()" style="font-size:12px;background:#16a34a">Load Fleet to Map</button>
+    <button class="bprim" onclick="loadSvAllShipsToMap()" style="font-size:12px;background:#0ea5e9" title="GET /ship/snapshot — all tracked vessels, no category needed">Load All Ships</button>
+    <button class="bprim" onclick="loadSvFleetToMap()" style="font-size:12px;background:#16a34a" title="GET /fleet/info — fleet-scoped, requires registered categories">Load Fleet</button>
     <button class="bok" onclick="clearSvFleetFromMap()" style="font-size:11px">Clear Map</button>
     <span id="svMsg" style="font-size:11px;color:var(--muted)"></span>
    </div>
    <div style="display:flex;gap:4px;align-items:center;margin-top:6px;flex-wrap:wrap">
     <span style="font-size:11px;color:var(--muted)">Inspect raw response:</span>
     <button class="bok" onclick="inspectSv('sv_categories')" style="font-size:11px;padding:3px 8px">Categories</button>
-    <button class="bok" onclick="inspectSv('sv_snapshot')" style="font-size:11px;padding:3px 8px">Snapshot</button>
-    <button class="bok" onclick="inspectSv('sv_info')" style="font-size:11px;padding:3px 8px">Info</button>
-    <input type="text" id="svShipIdProbe" placeholder="shipId UUID (for Past Track)" style="flex:1;min-width:160px;font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:4px">
+    <button class="bok" onclick="inspectSv('sv_snapshot')" style="font-size:11px;padding:3px 8px" title="Fleet snapshot">Fleet Snap</button>
+    <button class="bok" onclick="inspectSv('sv_info')" style="font-size:11px;padding:3px 8px">Fleet Info</button>
+    <button class="bok" onclick="inspectSv('sv_ship_snapshot')" style="font-size:11px;padding:3px 8px" title="GET /ship/snapshot">Ship Snap</button>
+    <button class="bok" onclick="inspectSv('sv_ship_area')" style="font-size:11px;padding:3px 8px" title="GET /ship/position/area">Ship in Zones</button>
+    <button class="bok" onclick="inspectSv('sv_zones')" style="font-size:11px;padding:3px 8px" title="GET /zone/all">Zones</button>
+   </div>
+   <div style="display:flex;gap:4px;align-items:center;margin-top:6px;flex-wrap:wrap">
+    <input type="text" id="svShipIdProbe" placeholder="shipId UUID" style="flex:1;min-width:160px;font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:4px">
     <button class="bok" onclick="inspectSv('sv_pasttrack',{shipId:document.getElementById('svShipIdProbe').value.trim()})" style="font-size:11px;padding:3px 8px">Past Track</button>
+    <button class="bok" onclick="confirmSvShipDelete()" style="font-size:11px;padding:3px 8px;background:#fee2e2;color:#991b1b;border-color:#fecaca" title="DELETE /ship — removes the ship from this workspace">Delete Ship</button>
+    <select id="svZoneSection" style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:4px">
+     <option value="HRA">HRA</option>
+     <option value="ECA">ECA</option>
+     <option value="JWC">JWC</option>
+     <option value="CUSTOM_ZONE">CUSTOM_ZONE</option>
+    </select>
+    <button class="bok" onclick="inspectSv('sv_zone_section',{zoneSection:document.getElementById('svZoneSection').value})" style="font-size:11px;padding:3px 8px">Zone Section</button>
    </div>
    <pre id="svTestOut" style="display:none;margin-top:8px;padding:8px;background:#0f172a;color:#e2e8f0;font-size:11px;border-radius:4px;max-height:240px;overflow:auto;white-space:pre-wrap;word-break:break-all"></pre>
   </div>
@@ -419,7 +433,7 @@ var DEFAULT_APPS_SCRIPT_URL = '';
 var CONFIG = {
     appsScriptUrl: localStorage.getItem('pd_surl') || DEFAULT_APPS_SCRIPT_URL || '',
     adminEmail: 'smmoon@heungaline.com',
-    version: '1.4.10',
+    version: '1.4.11',
     updateUrl: 'https://mustbebecomerichman.github.io/Operation-dashboard/delay_dashboard.html',  // GitHub Pages — auto-update source
     aisApiKey: '',  // aisstream.io API key — set per-device via Admin Panel (stored in localStorage)
     aisProvider: 'aisstream',  // 'aisstream' | 'datalastic' | 'marinetraffic' | 'vesselfinder'
@@ -2211,6 +2225,51 @@ function clearSvFleetFromMap(){
     svFleetMarkers={};
     var msg=document.getElementById('svMsg'); if(msg){msg.style.color='var(--muted)'; msg.textContent='Fleet cleared from map';}
     var out=document.getElementById('svTestOut'); if(out){out.style.display='none'; out.textContent='';}
+}
+// Loads ALL tracked vessels (no fleet category required) via GET /ship/snapshot.
+// Each entry has shape {shipId, position:{...}} — svFlattenEntry already handles it.
+function loadSvAllShipsToMap(){
+    var out=document.getElementById('svTestOut');
+    var msg=document.getElementById('svMsg');
+    msg.style.color='var(--muted)'; msg.textContent='Loading all ships…';
+    if(out){out.style.display='block'; out.textContent='GET sv_ship_snapshot …';}
+    ensureSvLayer();
+    var t0=Date.now();
+    callSV('sv_ship_snapshot').then(function(data){
+        var list=Array.isArray(data)?data:(data&&data.response)||[];
+        var placed=0, skipped=0, samples=[];
+        list.forEach(function(entry){
+            var v=svFlattenEntry(entry);
+            if(samples.length<3) samples.push(v);
+            if(!v.lat||!v.lng||isNaN(v.lat)||isNaN(v.lng)){skipped++; return;}
+            placed++;
+            var icon=makeShipIcon(Number(v.heading)||0,'#0ea5e9'); // sky blue
+            var html=buildSvPopup(v);
+            var key=v.shipId||('idx'+placed);
+            if(svFleetMarkers[key]){
+                svFleetMarkers[key].setLatLng([v.lat,v.lng]).setIcon(icon).setPopupContent(html);
+            } else {
+                var mk=window.L.marker([v.lat,v.lng],{icon:icon}).bindPopup(html);
+                svFleetLayer.addLayer(mk);
+                svFleetMarkers[key]=mk;
+            }
+        });
+        msg.style.color='var(--ok)';
+        msg.textContent='✓ '+placed+' placed, '+skipped+' skipped ('+(Date.now()-t0)+' ms)';
+        if(out) out.textContent='Total entries: '+list.length+'\nPlaced: '+placed+'\nSkipped (no position): '+skipped+'\n\nFirst 3 parsed entries:\n'+JSON.stringify(samples,null,2);
+    }).catch(function(err){
+        msg.style.color='var(--danger)';
+        msg.textContent='✗ '+err.message;
+        if(out) out.textContent=String(err.stack||err.message)+(err.detail?'\n\n'+JSON.stringify(err.detail,null,2):'');
+    });
+}
+// Wrapper around sv_ship_delete with a confirm() guard — this permanently removes
+// a ship from the SeaVantage workspace, affecting all users.
+function confirmSvShipDelete(){
+    var sid=(document.getElementById('svShipIdProbe').value||'').trim();
+    if(!sid){alert('Enter a shipId UUID in the input box first.'); return;}
+    if(!confirm('Delete ship '+sid.slice(0,8)+'… from the SeaVantage workspace?\n\nThis affects ALL users of this SeaVantage account, not just this dashboard.')) return;
+    inspectSv('sv_ship_delete',{shipId:sid});
 }
 function inspectSv(action,extraParams){
     var out=document.getElementById('svTestOut');
