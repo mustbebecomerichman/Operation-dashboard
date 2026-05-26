@@ -45,6 +45,8 @@ If `git push` returns 403 to `chartersuperman` (or any non-owner), you forgot `g
 
 **Editing workflow files (`.github/workflows/*.yml`)**: regular `git push` of workflow changes can return HTTP 500 ("Internal Server Error") even with `workflow` token scope. Workaround: use the Contents API via `gh api -X PUT repos/.../contents/path -f content="$(base64 file)"` — server-side commits bypass the push restriction. Pulled back with `git fetch && git reset --hard origin/main`.
 
+**Divergent auto-push from parallel sessions**: if two Claude sessions (or another machine) edit the dashboard simultaneously, both Stop hooks commit + try to push. The first wins; the second fails with non-fast-forward and the local commit sits unpushed. Next session sees `Your branch is ahead of origin/main by N commits` and any later auto-push only ships the new diff — your earlier fix is NOT in the deployed bundle. Recovery: `git pull --rebase origin main` → resolve conflicts in the overlapping CSS/JS region → `gh auth switch --user mustbebecomerichman` if needed → `git push`. Verify with `curl <pages_url> | grep <your-marker>`.
+
 ---
 
 ## 3. File encoding — important
