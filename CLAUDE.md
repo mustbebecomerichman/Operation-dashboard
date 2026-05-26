@@ -221,6 +221,20 @@ Don't pile session diaries into this file — it should stay evergreen. For per-
 
 ## 10. Recent work log (append-only, newest first)
 
+### 2026-05-25 — Mobile fixes: vertical scroll + tap-to-detail
+Two regressions reported on mobile after testing the live GitHub Pages URL.
+
+**Issue 1 — page didn't scroll vertically on mobile**:
+- Root cause: `@media(max-width:768px){ body{overflow:hidden} }` (line 155 pre-fix). Hard block on the whole document, so long sidebar lists (port table, vessel cards, admin panel) couldn't scroll past the viewport.
+- Fix: replaced with `body{overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch}` — keep horizontal hidden so any wide content can't break layout, but vertical scroll restored. The `-webkit-overflow-scrolling:touch` enables momentum scrolling on iOS Safari.
+
+**Issue 2 — clicking a port/route on mobile showed nothing**:
+- Root cause: `.mapc{display:none}` on mobile until the user explicitly taps the Map tab in `.mob-nav`. But `focusPort()` and `showRoute()` both render their detail (Leaflet popups, route polyline, `.rpanel` overlay) on the map — so they were drawing on an invisible element.
+- Fix: added `isMobileView()` helper (`window.matchMedia('(max-width:768px)').matches`) and inserted `if(isMobileView()) mobTab('map');` at the top of both `focusPort()` and `showRoute()`. Tapping a port row or service card now auto-surfaces the map (which calls `map.invalidateSize()` so Leaflet re-tiles after the layout change) before drawing the detail.
+- Side effect: the mob-nav "Map" button correctly highlights as active after the auto-switch (mobTab already does this).
+
+Verified: all 3 `<script>` blocks parse with `new Function()` (3/3 OK).
+
 ### 2026-05-25 — Vessel UI bugs · HRCI extracted · Schedule Code bulk-register
 Three independent fixes in one turn.
 

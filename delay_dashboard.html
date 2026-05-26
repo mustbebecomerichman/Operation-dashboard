@@ -152,7 +152,9 @@ body{font-family:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;backg
 .reporter-pill .rp-em{color:var(--accent);font-weight:600}
 /* ?? MOBILE RESPONSIVE ????????????????????????? */
 @media(max-width:768px){
-  body{overflow:hidden}
+  /* Allow vertical scroll for long content (port list, vessel cards, admin panel).
+     Horizontal stays hidden so off-screen overflow can't break layout. */
+  body{overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch}
   .hdr{height:52px;padding:0 12px;gap:8px}
   .hdr-title{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
   .hdr-right{gap:4px;flex-shrink:0}
@@ -759,9 +761,16 @@ function updatePortCards(){
     });
     document.getElementById('portCards').innerHTML=h||'<div class="nodata">No results found</div>';
 }
+// True when viewport is in the mobile breakpoint (matches the @media(max-width:768px) CSS).
+// On mobile the .mapc is display:none by default, so anything we draw on the map
+// (popups, route polylines, the rpanel overlay) is invisible until we switch to the
+// Map tab via mobTab('map').
+function isMobileView(){return window.matchMedia('(max-width:768px)').matches;}
 function focusPort(dp){
     var t=TERMINALS.find(function(x){return x.depot===dp;});
     if(!t||!map)return;
+    // On mobile, surface the map first so the popup is actually visible.
+    if(isMobileView()) mobTab('map');
     var d=getD(t.depot);
     map.setView([t.lat,t.lon],9);
     window.L.popup().setLatLng([t.lat,t.lon])
@@ -1313,6 +1322,10 @@ function seaRoute(a,b){
 function showRoute(svcId){
     var route=ROUTES[svcId];
     if(!route)return;
+    // On mobile, surface the map FIRST so the route polyline, fitBounds zoom,
+    // and the .rpanel overlay are all visible (otherwise they render on the
+    // display:none .mapc and the user sees no reaction).
+    if(isMobileView()) mobTab('map');
     if(routeLayer){map.removeLayer(routeLayer);routeLayer=null;}
     var si=SVC_INFO.find(function(s){return s.svc===svcId;})||{};
     var col=RC[route.region||si.region]||'#1e40af';
