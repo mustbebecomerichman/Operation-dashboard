@@ -223,6 +223,27 @@ Don't pile session diaries into this file — it should stay evergreen. For per-
 
 ## 10. Recent work log (append-only, newest first)
 
+### 2026-05-26 — Mobile blank-map: cache headers + visible build tag + map rebuild fallback
+After v1.4.16 shipped with the `_ensureMapReady` fix, the user reported still seeing a gray empty map on mobile. Live URL was confirmed to be serving v1.4.16 with all the fixes intact, so the most probable cause was Samsung Internet's aggressive HTML cache (GitHub Pages serves `Cache-Control: max-age=600` and Samsung tends to extend that aggressively across sessions). Three defensive layers added.
+
+**1. No-cache meta tags** ([delay_dashboard.html ~line 5–10](delay_dashboard.html))
+```
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+```
+Belt + braces — even though GitHub Pages serves a 10-min cache header, these tell the browser to revalidate on every load. The first visit after this lands still gets cached (the meta tags only affect future visits), so the user may still need one hard refresh now, but future updates will reach mobile within seconds.
+
+**2. Always-visible build badge on mobile** ([delay_dashboard.html ~line 2630](delay_dashboard.html))
+Pill in the top-left of every mobile screen: `v1.4.17 · tap to refresh`. Tapping it does `location.replace(location.pathname + '?cb=' + Date.now())` which forces a no-cache reload. Two purposes:
+- User can immediately see which build they're running ("the screenshot says v1.4.5 — that's old, refresh")
+- One-tap recovery from cached old HTML
+
+**3. Map rebuild fallback in `_ensureMapReady`** ([delay_dashboard.html ~line 1121](delay_dashboard.html))
+After the existing invalidateSize+setView dance, queue two more RAFs that check the container's `clientWidth`/`clientHeight` against Leaflet's `getSize()`. If the DOM says the container is real-sized but Leaflet still measures it as zero (a rare race in some mobile DOM engines), nuke the map with `map.remove()`, null `window.map`, and call `initMap()` again. Effectively a "reset switch" for the map.
+
+Verified: all 3 `<script>` blocks parse with `new Function()` (3/3 OK).
+
 ### 2026-05-26 — Auto-push: pre-flight gh auth guard (recurring 403 fix)
 Background: gh CLI keeps multiple accounts in the system keyring (`chartersuperman` + `mustbebecomerichman`). Various processes — VS Code git extension, other gh invocations, even `gh auth login` resetting active state — flip the active account back to `chartersuperman`, which has no push permission to `mustbebecomerichman/Operation-dashboard`. The Stop hook then commits successfully but `git push` returns 403, the failure goes to stderr, and **the user sees no error** — but local commits silently pile up and the live URL keeps serving stale code. This bit us three times in one week (v1.4.13, v1.4.15, v1.4.16 each blocked).
 

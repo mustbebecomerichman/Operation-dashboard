@@ -3,6 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+  <!-- Belt + braces no-cache: GitHub Pages serves with Cache-Control:max-age=600,
+       which means mobile browsers (especially Samsung Internet) keep stale HTML
+       for 10 min after each visit. These tags tell the browser to revalidate
+       on every load so fixes reach the user immediately. -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <meta name="theme-color" content="#1e40af">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -462,7 +469,7 @@ var DEFAULT_APPS_SCRIPT_URL = '';
 var CONFIG = {
     appsScriptUrl: localStorage.getItem('pd_surl') || DEFAULT_APPS_SCRIPT_URL || '',
     adminEmail: 'smmoon@heungaline.com',
-    version: '1.4.16',
+    version: '1.4.17',
     updateUrl: 'https://mustbebecomerichman.github.io/Operation-dashboard/delay_dashboard.html',  // GitHub Pages — auto-update source
     aisApiKey: '',  // aisstream.io API key — set per-device via Admin Panel (stored in localStorage)
     aisProvider: 'aisstream',  // 'aisstream' | 'datalastic' | 'marinetraffic' | 'vesselfinder'
@@ -622,6 +629,15 @@ function showApp(){
     if(sess.role==='admin') document.getElementById('adminBtn').style.display='inline-block';
     if(window.innerWidth<=768){
         document.getElementById('mobNav').style.display='flex';
+        // Show the mobile build badge with current CONFIG.version so the user
+        // can immediately tell which deployment they're running (helps when
+        // browser cache serves stale HTML).
+        var bb=document.getElementById('buildBadge');
+        if(bb){
+            var bv=document.getElementById('bbVer');
+            if(bv) bv.textContent=CONFIG.version;
+            bb.style.display='block';
+        }
         if(sess.role==='reporter'){setTimeout(function(){mobTab('update');},100);}
     // Auto-check for updates in background
     setTimeout(function(){checkForUpdate(false);},3000);
@@ -1119,6 +1135,30 @@ function _ensureMapReady(){
     // visible tiles against the (now correct) container bounds.
     var c=m.getCenter(), z=m.getZoom();
     m.setView(c,z,{animate:false});
+    // Fallback: if after one more frame the container has size but Leaflet
+    // still hasn't measured it (some mobile browsers' DOM-engine quirk),
+    // nuke and rebuild. Done at most once per call via a flag.
+    if(typeof requestAnimationFrame==='function'){
+        requestAnimationFrame(function(){
+            requestAnimationFrame(function(){
+                var el=document.getElementById('map');
+                if(!el||!window.map) return;
+                var w=el.clientWidth, h=el.clientHeight;
+                if(w>0 && h>0){
+                    var sz=window.map.getSize();
+                    // If Leaflet still thinks size is zero despite the DOM saying
+                    // otherwise, hard-rebuild the map. This is the nuclear option.
+                    if(!sz || sz.x===0 || sz.y===0){
+                        try{ window.map.remove(); }catch(_){ }
+                        window.map=null; map=null;
+                        initMap();
+                    } else {
+                        window.map.invalidateSize();
+                    }
+                }
+            });
+        });
+    }
 }
 function updateMks(){
     if(!map)return;
@@ -2597,6 +2637,13 @@ function testSvConnection(){
 window.onload=initAuth;
 
   </script>
+<!-- Always-visible build tag, mobile-only. Tap to manually trigger a no-cache
+     reload (defeats Samsung Internet's aggressive HTML cache). Helps diagnose
+     "I see the old version" reports — the user can confirm exactly what
+     build is running, and force-refresh from one place. -->
+<div id="buildBadge" onclick="location.replace(location.pathname+'?cb='+Date.now())" style="display:none;position:fixed;top:64px;left:8px;z-index:6000;background:rgba(15,23,42,.78);color:#fff;font:600 10px/1 system-ui,sans-serif;padding:5px 9px;border-radius:999px;cursor:pointer;letter-spacing:.4px;box-shadow:0 2px 8px rgba(0,0,0,.25)">
+  v<span id="bbVer">?</span> · tap to refresh
+</div>
 <nav class="mob-nav" id="mobNav" style="display:none">
   <button class="mob-nav-btn active" id="mn_port" onclick="mobTab('port')"><span class="mnicon">🚢</span>Port</button>
   <button class="mob-nav-btn" id="mn_service" onclick="mobTab('service')"><span class="mnicon">🌐</span>Routes</button>
