@@ -223,6 +223,34 @@ Don't pile session diaries into this file — it should stay evergreen. For per-
 
 ## 10. Recent work log (append-only, newest first)
 
+### 2026-05-26 — Authoritative port rotations + accurate waypoints from marnet graph
+**Problem 1**: existing ROUTES.ports[] was incomplete — 73 of 76 routes were missing ports (origin return, intermediate stops, alternative direction calls). User confirmed Proforma data_2026-03-31.xlsx (sheets "자선"/"슬롯") is the authoritative source: `SVR_CD + SEQ + FR_PORT/TO_PORT`. Also 15 distinct ports (THLCH, AEJEA, INPIP, JPTKS …) were entirely missing from TERMINALS, so they silently dropped from rotations.
+
+**Problem 2**: auto-generated sea waypoints from the regional WP/_RT table (33 hand-placed points + ~200 region pairs) were too coarse — paths still cut corners.
+
+Three new scripts:
+
+1. **[scripts/add-missing-terminals.py](scripts/add-missing-terminals.py)** — appends 15 missing port entries to TERMINALS (depot/port_code/name/country/lat/lon/hist_delay) one-time fix.
+
+2. **[scripts/rebuild-routes-from-proforma.py](scripts/rebuild-routes-from-proforma.py)** — single pipeline:
+   - **Step 1**: parse Proforma legs → reconstruct ordered port list per service.
+   - **Step 1.5**: truncate at the first reoccurrence of `ports[0]` so multi-voyage stitched data becomes one canonical rotation (PQS: `PTK→TAO→PTK→TAO→PTK` → `PTK→TAO→PTK`).
+   - **Step 2**: overwrite `ROUTES[svc].ports[]` — keeps name/kind/region/manager/backup metadata. Unknown-coord ports (e.g. AEJEA, THLCH) stay in the list so the user sees them; only excluded from waypoint drawing.
+   - **Step 3**: download/load `data/marnet/marnet.geojson` (Genth Alili's searoute-py distribution, 4,109 LineString features from the European Commission marine network) → build undirected graph (9,646 nodes, 15,806 edges).
+   - **Step 4**: Dijkstra between each consecutive port pair using nearest-neighbor entry/exit nodes.
+   - **Output**: `data/route-coords.json` (~160 KB, 5,036 waypoints across 72 routes). **NEVER writes dense coords back into `ROUTES.coords[]`** (that would make re-running the script mistake its own output for hand-tuned KST-style data).
+
+3. **Hand-tuned routes preserved**: KST (392 pts), KBX (69 pts), KHX1 (144 pts), TIS2 (port-only that doesn't match Proforma) — `coords.length > ports.length` is the marker.
+
+Result: 73 routes now have complete rotations from Proforma + accurate sea-following polylines from the marnet graph. Ports without lat/lon still show in the route's port list (visible to user); only the line drawing skips them.
+
+Regen workflow:
+```bash
+# After each Proforma drop / TERMINALS update / WP refinement:
+python scripts/add-missing-terminals.py        # one-time; idempotent
+python scripts/rebuild-routes-from-proforma.py # re-runnable safely
+```
+
 ### 2026-05-26 — Input UX overhaul + auto-generated sea routes
 Three independent improvements in one turn.
 
