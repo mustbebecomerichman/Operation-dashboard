@@ -457,7 +457,7 @@ var DEFAULT_APPS_SCRIPT_URL = '';
 var CONFIG = {
     appsScriptUrl: localStorage.getItem('pd_surl') || DEFAULT_APPS_SCRIPT_URL || '',
     adminEmail: 'smmoon@heungaline.com',
-    version: '1.4.13',
+    version: '1.4.14',
     updateUrl: 'https://mustbebecomerichman.github.io/Operation-dashboard/delay_dashboard.html',  // GitHub Pages — auto-update source
     aisApiKey: '',  // aisstream.io API key — set per-device via Admin Panel (stored in localStorage)
     aisProvider: 'aisstream',  // 'aisstream' | 'datalastic' | 'marinetraffic' | 'vesselfinder'
@@ -1331,15 +1331,31 @@ function showRoute(svcId){
     var col=RC[route.region||si.region]||'#1e40af';
 
     // ── Map 항적선: coords[] WP 직접 사용 (실제 항행 경로) ──
+    // route.coords[] may be one of two shapes:
+    //   (a) "port-only" — one entry per ROUTES.ports[] item, holding just the
+    //       port's lat/lon. Connecting these directly draws straight lines that
+    //       cross land (e.g. Korea→Indonesia chops through Vietnam/Borneo).
+    //   (b) "dense"    — explicit sea waypoints between ports. Use as-is.
+    // We treat coords[] as port-only when its length matches ports[]. Otherwise
+    // (dense) we trust the uploaded path. The port-only case is then enriched
+    // by seaRoute() between each consecutive port using the regional WP table.
     var pts=[];
-    if(route.coords&&route.coords.length){
+    var _coordsLen=(route.coords||[]).length;
+    var _portsLen=(route.ports||[]).length;
+    var _dense=route.coords && _coordsLen>0 && _coordsLen!==_portsLen;
+    if(_dense){
         route.coords.forEach(function(c){
             if(c.lat&&c.lon)pts.push([c.lat,c.lon]);
         });
     } else if(route.ports&&route.ports.length){
-        // coords ?놁쑝硫?ports 湲곕컲 seaRoute fallback
+        // Port-only path. Prefer per-port coords from route.coords[i] (which
+        // may carry custom approach points), else fall back to TERMINALS lookup.
+        // Then enrich the polyline with seaRoute() waypoints between each pair
+        // so the line stays in water instead of slicing across land.
         var portCoords=[];
-        route.ports.forEach(function(pc){
+        route.ports.forEach(function(pc,i){
+            var c=route.coords&&route.coords[i];
+            if(c&&c.lat&&c.lon){portCoords.push([c.lat,c.lon]); return;}
             var t=TERMINALS.find(function(x){return x.port_code===pc;});
             if(t)portCoords.push([t.lat,t.lon]);
         });
@@ -1347,6 +1363,7 @@ function showRoute(svcId){
             pts.push(portCoords[0]);
             for(var k=1;k<portCoords.length;k++){
                 var seg=seaRoute(portCoords[k-1],portCoords[k]);
+                // seaRoute returns [from, wp1, ..., to]; skip from to avoid duplicate endpoint.
                 for(var j=1;j<seg.length;j++)pts.push(seg[j]);
             }
         }

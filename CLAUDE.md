@@ -223,6 +223,20 @@ Don't pile session diaries into this file — it should stay evergreen. For per-
 
 ## 10. Recent work log (append-only, newest first)
 
+### 2026-05-25 — Route polyline now follows sea (was crossing land)
+Issue: every line drawn between ports on the map was a straight line, so Korea→Indonesia chopped through Vietnam/Borneo, Japan→Thailand sliced across the Philippines, etc.
+
+Root cause: each `ROUTES[svc]` has `coords[]` of the same length as `ports[]` — i.e. the coords array only holds the port lat/lons themselves, with **no intermediate sea waypoints**. The previous `showRoute()` saw `route.coords.length` was truthy and used those points directly, skipping the existing `seaRoute()` enrichment path entirely.
+
+Fix in `showRoute()` ([delay_dashboard.html:1333–1370](delay_dashboard.html)):
+- Heuristic: treat `coords[]` as **port-only** when its length matches `ports[].length`. Treat it as **dense** (= explicit sea waypoints) when lengths differ — in that case keep the previous "use coords as-is" behaviour.
+- Port-only path now: build a `portCoords` array (using `route.coords[i]` as a per-port override when present, else `TERMINALS` lookup), then run `seaRoute(portCoords[i-1], portCoords[i])` between each consecutive pair so the polyline curves through the existing `WP` / `_RT` waypoint graph (Korea Strait, Malacca, Sing, Luzon, etc.).
+- Net effect: the same data file now draws curved sea-following routes without any data changes. If the user later uploads a route with dense waypoints (e.g. `coords.length > ports.length`), the system respects them and skips enrichment.
+
+If a specific route still crosses land after this, the fix path is:
+1. Check `pregion(lat,lon)` for the two endpoint ports — wrong region classification leads to wrong `_RT` lookup.
+2. Add the missing `from:to` pair in `_RT` (the table at line ~1148), or insert a new `WP.<name>` if the needed waypoint doesn't exist.
+
 ### 2026-05-25 — Mobile fixes: vertical scroll + tap-to-detail
 Two regressions reported on mobile after testing the live GitHub Pages URL.
 
