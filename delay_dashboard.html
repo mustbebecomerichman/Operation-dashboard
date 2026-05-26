@@ -469,7 +469,7 @@ var DEFAULT_APPS_SCRIPT_URL = '';
 var CONFIG = {
     appsScriptUrl: localStorage.getItem('pd_surl') || DEFAULT_APPS_SCRIPT_URL || '',
     adminEmail: 'smmoon@heungaline.com',
-    version: '1.4.17',
+    version: '1.4.18',
     updateUrl: 'https://mustbebecomerichman.github.io/Operation-dashboard/delay_dashboard.html',  // GitHub Pages — auto-update source
     aisApiKey: '',  // aisstream.io API key — set per-device via Admin Panel (stored in localStorage)
     aisProvider: 'aisstream',  // 'aisstream' | 'datalastic' | 'marinetraffic' | 'vesselfinder'
@@ -2641,9 +2641,79 @@ window.onload=initAuth;
      reload (defeats Samsung Internet's aggressive HTML cache). Helps diagnose
      "I see the old version" reports — the user can confirm exactly what
      build is running, and force-refresh from one place. -->
-<div id="buildBadge" onclick="location.replace(location.pathname+'?cb='+Date.now())" style="display:none;position:fixed;top:64px;left:8px;z-index:6000;background:rgba(15,23,42,.78);color:#fff;font:600 10px/1 system-ui,sans-serif;padding:5px 9px;border-radius:999px;cursor:pointer;letter-spacing:.4px;box-shadow:0 2px 8px rgba(0,0,0,.25)">
-  v<span id="bbVer">?</span> · tap to refresh
+<div id="buildBadge" style="display:none;position:fixed;top:64px;left:8px;z-index:6000;background:rgba(15,23,42,.78);color:#fff;font:600 10px/1 system-ui,sans-serif;padding:5px 9px;border-radius:999px;cursor:pointer;letter-spacing:.4px;box-shadow:0 2px 8px rgba(0,0,0,.25);user-select:none;-webkit-user-select:none">
+  v<span id="bbVer">?</span> · tap=refresh · hold=diag
 </div>
+<script>
+// Build-badge UX: short tap = no-cache reload, long-press = diagnostic dialog.
+// The diagnostic shows live state so the user can screenshot it back when a
+// "gray screen" report persists despite the latest build being live.
+(function(){
+  var bb=document.getElementById('buildBadge');
+  if(!bb) return;
+  var pressTimer=null, longPressed=false;
+  function onDown(){
+    longPressed=false;
+    pressTimer=setTimeout(function(){
+      longPressed=true;
+      showMapDiag();
+    },600);
+  }
+  function onUp(e){
+    if(pressTimer){clearTimeout(pressTimer); pressTimer=null;}
+    if(!longPressed){
+      // short tap → force no-cache reload
+      location.replace(location.pathname+'?cb='+Date.now());
+    }
+    if(e&&e.preventDefault) e.preventDefault();
+  }
+  function onCancel(){
+    if(pressTimer){clearTimeout(pressTimer); pressTimer=null;}
+  }
+  bb.addEventListener('touchstart',onDown,{passive:true});
+  bb.addEventListener('touchend',onUp);
+  bb.addEventListener('touchcancel',onCancel);
+  bb.addEventListener('mousedown',onDown);
+  bb.addEventListener('mouseup',onUp);
+  bb.addEventListener('mouseleave',onCancel);
+})();
+function showMapDiag(){
+  var lines=[];
+  lines.push('Build: v'+(window.CONFIG?CONFIG.version:'?'));
+  lines.push('UA: '+navigator.userAgent.slice(0,80));
+  lines.push('');
+  lines.push('window.L present: '+(typeof window.L!=='undefined'));
+  if(typeof window.L!=='undefined') lines.push('L.version: '+(window.L.version||'?'));
+  lines.push('window.map present: '+(typeof window.map!=='undefined' && !!window.map));
+  var el=document.getElementById('map');
+  lines.push('#map div exists: '+!!el);
+  if(el){
+    lines.push('#map clientW×H: '+el.clientWidth+'×'+el.clientHeight);
+    lines.push('#map offsetW×H: '+el.offsetWidth+'×'+el.offsetHeight);
+    lines.push('#map children: '+el.children.length+(el.children.length?' ('+Array.prototype.slice.call(el.children).map(function(c){return c.className.split(' ')[0];}).join(',')+')':''));
+  }
+  var mapc=document.querySelector('.mapc');
+  if(mapc){
+    var cs=getComputedStyle(mapc);
+    lines.push('.mapc display: '+cs.display);
+    lines.push('.mapc height: '+cs.height);
+    lines.push('.mapc has show-map: '+mapc.classList.contains('show-map'));
+  }
+  if(window.map){
+    try{
+      var sz=window.map.getSize();
+      lines.push('map.getSize(): '+sz.x+'×'+sz.y);
+      var c=window.map.getCenter();
+      lines.push('map.getCenter(): '+c.lat.toFixed(2)+','+c.lng.toFixed(2));
+      lines.push('map.getZoom(): '+window.map.getZoom());
+    }catch(e){ lines.push('map state error: '+e.message); }
+  }
+  lines.push('');
+  lines.push('viewport: '+window.innerWidth+'×'+window.innerHeight);
+  lines.push('matchMedia(<=768): '+window.matchMedia('(max-width:768px)').matches);
+  alert(lines.join('\n'));
+}
+</script>
 <nav class="mob-nav" id="mobNav" style="display:none">
   <button class="mob-nav-btn active" id="mn_port" onclick="mobTab('port')"><span class="mnicon">🚢</span>Port</button>
   <button class="mob-nav-btn" id="mn_service" onclick="mobTab('service')"><span class="mnicon">🌐</span>Routes</button>
