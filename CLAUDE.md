@@ -223,6 +223,26 @@ Don't pile session diaries into this file — it should stay evergreen. For per-
 
 ## 10. Recent work log (append-only, newest first)
 
+### 2026-05-25 — Blank map on mobile: idempotent initMap + _ensureMapReady
+User screenshot showed an empty gray block where the map should be — Port/Route tap auto-switched to the Map tab (so the previous fix worked) but tiles never loaded.
+
+Three independent root causes were stacked:
+
+**A. `initMap()` was wrapped in `setTimeout(…, 200)`.** Pure historical leftover, no longer needed. If the user logged in and tapped Map within 200 ms, `window.map` was still `null` — `mobTab('map')` happily flipped the container to `display:block` but never initialized Leaflet, leaving an empty `#map` div.
+- Fix: removed the setTimeout. `initMap()` runs synchronously from `showApp()`. Made it idempotent — `if(window.map) return window.map;` — so it's safe to call from multiple entry points (login, map-tab tap, route click).
+
+**B. `mobTab('map')`'s `invalidateSize()` ran before the browser laid out the new container.** Same root issue as the previous focusPort fix but in a different code path. The synchronous call measured `.mapc` as still `0×0`, the TileLayer's resize handler saw "nothing visible," no tile requests fired.
+- Fix: `mobTab('map')` now schedules a deferred resync via `afterLayout(_ensureMapReady)` instead of calling `invalidateSize()` inline.
+
+**C. Even after `invalidateSize()` reported the new size, the TileLayer's tile pool was empty because the view was set when the container was `0×0`.** A second `setView(currentCenter, currentZoom)` after `invalidateSize` triggers TileLayer to re-evaluate visible tiles against the now-correct bounds and actually fetch them.
+- Fix: added `_ensureMapReady()` helper that does `initMap()` if missing, `invalidateSize()`, then a no-op `setView(c, z, {animate:false})`. Called from `mobTab('map')`, `focusPort.doFocus`, and `_drawRoute`.
+
+Side fix: replaced `짤 OpenStreetMap, 짤 CartoDB` mojibake in the attribution string with the proper `©` characters.
+
+Net: tapping Map (directly or via port/route auto-switch) reliably shows tiles within ~1 frame on a cold start, and within a few hundred ms on subsequent taps as cached tiles reappear.
+
+Verified: all 3 `<script>` blocks parse with `new Function()` (3/3 OK).
+
 ### 2026-05-25 — Mobile route/port follow-up: deferred map ops + bottom rpanel
 User report: after the previous turn the tap-to-map auto-switch worked, but the map then looked frozen — tiles half-rendered, popup at the wrong spot, the route detail panel covering nearly the whole screen.
 

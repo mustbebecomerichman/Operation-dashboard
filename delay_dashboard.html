@@ -462,7 +462,7 @@ var DEFAULT_APPS_SCRIPT_URL = '';
 var CONFIG = {
     appsScriptUrl: localStorage.getItem('pd_surl') || DEFAULT_APPS_SCRIPT_URL || '',
     adminEmail: 'smmoon@heungaline.com',
-    version: '1.4.15',
+    version: '1.4.16',
     updateUrl: 'https://mustbebecomerichman.github.io/Operation-dashboard/delay_dashboard.html',  // GitHub Pages — auto-update source
     aisApiKey: '',  // aisstream.io API key — set per-device via Admin Panel (stored in localStorage)
     aisProvider: 'aisstream',  // 'aisstream' | 'datalastic' | 'marinetraffic' | 'vesselfinder'
@@ -784,7 +784,7 @@ function focusPort(dp){
     if(!t||!map)return;
     var d=getD(t.depot);
     var doFocus=function(){
-        if(window.map) map.invalidateSize();
+        _ensureMapReady();   // ensures map exists + tiles refresh after display change
         map.setView([t.lat,t.lon],9);
         window.L.popup().setLatLng([t.lat,t.lon])
             .setContent('<b style="font-size:13px">'+(t.country||'')+t.depot+'</b><br><span style="color:#64748b;font-size:11px">'+t.port_name+'</span><br><span style="color:'+dcol(d)+';font-weight:700">'+d.toFixed(1)+'h delay</span>')
@@ -1099,13 +1099,26 @@ function renderLog(){
 
 // ?? MAP ??????????????????????????????????????????????????????
 function initMap(){
-    setTimeout(function(){
-        map=window.L.map('map').setView([25,118],4);
-        window.L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-            {attribution:'짤 OpenStreetMap, 짤 CartoDB',maxZoom:18}).addTo(map);
-        updateMks();
-        map.invalidateSize();
-    },200);
+    if(window.map) return window.map;
+    map=window.L.map('map',{tap:true,tapTolerance:15}).setView([25,118],4);
+    window.L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+        {attribution:'© OpenStreetMap, © CartoDB',maxZoom:18}).addTo(map);
+    window.map=map;
+    updateMks();
+    map.invalidateSize();
+    return map;
+}
+// Force Leaflet to re-measure container + reload visible tiles. Safe after a
+// display:none → display:block transition. Tile layer reuses cached tiles
+// when the view didn't change so this is cheap.
+function _ensureMapReady(){
+    var m=window.map||initMap();
+    if(!m) return;
+    m.invalidateSize();
+    // No-op view set whose only purpose is to trigger TileLayer to re-evaluate
+    // visible tiles against the (now correct) container bounds.
+    var c=m.getCenter(), z=m.getZoom();
+    m.setView(c,z,{animate:false});
 }
 function updateMks(){
     if(!map)return;
@@ -1356,7 +1369,7 @@ function showRoute(svcId){
 function _drawRoute(svcId){
     var route=ROUTES[svcId];
     if(!route)return;
-    if(window.map) map.invalidateSize(); // re-sync container size on mobile path
+    _ensureMapReady();   // initializes map if needed + refreshes tiles after display change
     if(routeLayer){map.removeLayer(routeLayer);routeLayer=null;}
     var si=SVC_INFO.find(function(s){return s.svc===svcId;})||{};
     var col=RC[route.region||si.region]||'#1e40af';
@@ -2611,7 +2624,12 @@ function mobTab(t){
   if(t==='map'){
     mapc.classList.add('show-map');
     document.querySelector('.side').style.display='none';
-    if(window.map)window.map.invalidateSize();
+    // .mapc just went display:none → block. Layout hasn't been computed yet,
+    // so invalidateSize() NOW would measure the container as still 0×0 and
+    // the TileLayer would think there's nothing visible to load. Defer until
+    // after the browser applies layout, then resync container + tiles.
+    if(typeof afterLayout==='function') afterLayout(_ensureMapReady);
+    else if(window.map) window.map.invalidateSize();
   }else{
     closeRP();
     mapc.classList.remove('show-map');
