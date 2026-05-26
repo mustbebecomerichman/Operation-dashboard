@@ -23,6 +23,26 @@ if [[ -z "$(git status --porcelain)" ]]; then
   exit 0
 fi
 
+# Pre-flight: ensure gh CLI's active GitHub account is the repo owner.
+# The keyring also holds a chartersuperman account that doesn't have push
+# permission to this repo — if it's active, every push fails with 403 and
+# commits silently pile up locally. We auto-correct here.
+if command -v gh >/dev/null 2>&1; then
+  ACTIVE_USER=$(gh api user --jq '.login' 2>/dev/null || true)
+  if [[ -n "$ACTIVE_USER" && "$ACTIVE_USER" != "mustbebecomerichman" ]]; then
+    echo "[auto-push] gh active account is '$ACTIVE_USER' — switching to mustbebecomerichman"
+    gh auth switch --user mustbebecomerichman >/dev/null 2>&1 || \
+      echo "[auto-push] WARNING: gh auth switch failed — push may 403"
+  fi
+fi
+
+# Pre-flight: pin this repo's commit author so commits don't go out under
+# chartersuperman / Sinokor CCI by accident.
+[[ "$(git config user.name)"  != "mustbebecomerichman" ]] && \
+  git config user.name  "mustbebecomerichman" >/dev/null
+[[ "$(git config user.email)" != "mustbebecomerichman@users.noreply.github.com" ]] && \
+  git config user.email "mustbebecomerichman@users.noreply.github.com" >/dev/null
+
 # Bump delay_dashboard.html version only if the dashboard itself is dirty.
 DASHBOARD="$REPO_ROOT/delay_dashboard.html"
 BUMPED_VER=""

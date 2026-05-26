@@ -29,6 +29,38 @@ if (-not $dirty) {
     exit 0
 }
 
+# Pre-flight: ensure gh CLI's active GitHub account is the repo owner
+# (mustbebecomerichman). The keyring also holds a chartersuperman account that
+# doesn't have push permission to this repo — if it's active, every push fails
+# with 403 and commits silently pile up locally. We auto-correct here.
+$ghCmd = Get-Command gh -ErrorAction SilentlyContinue
+if ($ghCmd) {
+    $priorEAPgh = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    $activeUser = & gh api user --jq '.login' 2>$null
+    $ghExit = $LASTEXITCODE
+    $ErrorActionPreference = $priorEAPgh
+    if ($ghExit -eq 0 -and $activeUser -and $activeUser -ne 'mustbebecomerichman') {
+        Write-Host "[auto-push] gh active account is '$activeUser' — switching to mustbebecomerichman"
+        $ErrorActionPreference = 'Continue'
+        & gh auth switch --user mustbebecomerichman *> $null
+        $swExit = $LASTEXITCODE
+        $ErrorActionPreference = $priorEAPgh
+        if ($swExit -ne 0) {
+            Write-Host "[auto-push] WARNING: gh auth switch failed (exit $swExit) — push may 403"
+        }
+    }
+}
+
+# Pre-flight: ensure this repo's commit author matches the push account so
+# commits don't go out under chartersuperman / Sinokor CCI by accident.
+$expectedName  = 'mustbebecomerichman'
+$expectedEmail = 'mustbebecomerichman@users.noreply.github.com'
+$curName  = (git config user.name)  2>$null
+$curEmail = (git config user.email) 2>$null
+if ($curName -ne $expectedName)   { git config user.name  $expectedName  | Out-Null }
+if ($curEmail -ne $expectedEmail) { git config user.email $expectedEmail | Out-Null }
+
 # Bump delay_dashboard.html version only if the dashboard itself is dirty.
 $dashboard = Join-Path $repoRoot 'delay_dashboard.html'
 $dashboardDirty = (git status --porcelain -- 'delay_dashboard.html') -ne $null

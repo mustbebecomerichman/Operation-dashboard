@@ -223,6 +223,19 @@ Don't pile session diaries into this file — it should stay evergreen. For per-
 
 ## 10. Recent work log (append-only, newest first)
 
+### 2026-05-26 — Auto-push: pre-flight gh auth guard (recurring 403 fix)
+Background: gh CLI keeps multiple accounts in the system keyring (`chartersuperman` + `mustbebecomerichman`). Various processes — VS Code git extension, other gh invocations, even `gh auth login` resetting active state — flip the active account back to `chartersuperman`, which has no push permission to `mustbebecomerichman/Operation-dashboard`. The Stop hook then commits successfully but `git push` returns 403, the failure goes to stderr, and **the user sees no error** — but local commits silently pile up and the live URL keeps serving stale code. This bit us three times in one week (v1.4.13, v1.4.15, v1.4.16 each blocked).
+
+Fix in both `scripts/auto-push.ps1` and `scripts/auto-push.sh`:
+1. Before doing any work, query `gh api user --jq '.login'`.
+2. If the active account isn't `mustbebecomerichman`, run `gh auth switch --user mustbebecomerichman`.
+3. Also pin local repo `git config user.name/user.email` to match, so a stray git command run with wrong auth context doesn't author commits under the wrong identity.
+
+Both checks are silent when already correct (no-op). They run on every Stop hook fire, so the auth state self-heals each turn. To debug a future push failure, run the script manually and read the `[auto-push]` lines:
+```
+powershell -ExecutionPolicy Bypass -File scripts/auto-push.ps1
+```
+
 ### 2026-05-25 — Blank map on mobile: idempotent initMap + _ensureMapReady
 User screenshot showed an empty gray block where the map should be — Port/Route tap auto-switched to the Map tab (so the previous fix worked) but tiles never loaded.
 
