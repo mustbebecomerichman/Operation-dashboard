@@ -174,6 +174,11 @@ body{font-family:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;backg
   .side{width:100%;border-radius:0;box-shadow:none;border-bottom:1px solid var(--border);max-height:none;min-height:calc(100vh - 170px)}
   .mapc{display:none;border-radius:0}
   .mapc.show-map{display:block;height:calc(100vh - 170px)}
+  /* Route detail panel: on mobile, sit at the BOTTOM of the visible map
+     instead of covering the right side. Limits height to ~45vh so the route
+     line on the map stays visible above. The user can scroll inside the
+     panel to read all ports; closing ✕ returns full map area. */
+  .rpanel{top:auto!important;right:8px!important;left:8px!important;bottom:8px!important;width:auto!important;max-height:45vh!important}
   /* Bottom navigation */
   .mob-nav{display:flex!important;position:fixed;bottom:0;left:0;right:0;height:60px;background:#fff;border-top:1px solid var(--border);box-shadow:0 -2px 8px rgba(0,0,0,.1);z-index:5000}
   .mob-nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;font-size:10px;font-family:inherit;color:var(--muted);cursor:pointer;padding:6px 2px;transition:color .15s;min-width:0}
@@ -457,7 +462,7 @@ var DEFAULT_APPS_SCRIPT_URL = '';
 var CONFIG = {
     appsScriptUrl: localStorage.getItem('pd_surl') || DEFAULT_APPS_SCRIPT_URL || '',
     adminEmail: 'smmoon@heungaline.com',
-    version: '1.4.14',
+    version: '1.4.15',
     updateUrl: 'https://mustbebecomerichman.github.io/Operation-dashboard/delay_dashboard.html',  // GitHub Pages — auto-update source
     aisApiKey: '',  // aisstream.io API key — set per-device via Admin Panel (stored in localStorage)
     aisProvider: 'aisstream',  // 'aisstream' | 'datalastic' | 'marinetraffic' | 'vesselfinder'
@@ -766,16 +771,31 @@ function updatePortCards(){
 // (popups, route polylines, the rpanel overlay) is invisible until we switch to the
 // Map tab via mobTab('map').
 function isMobileView(){return window.matchMedia('(max-width:768px)').matches;}
+// Helper: defer a callback until the browser has applied the most recent
+// layout change. Two RAFs guarantees we've passed the next paint, so Leaflet's
+// invalidateSize() / setView() see the correct container dimensions instead of
+// the 0×0 it would see if we ran immediately after .mapc went display:none → block.
+function afterLayout(cb){
+    if(typeof requestAnimationFrame!=='function'){return setTimeout(cb,32);}
+    requestAnimationFrame(function(){requestAnimationFrame(cb);});
+}
 function focusPort(dp){
     var t=TERMINALS.find(function(x){return x.depot===dp;});
     if(!t||!map)return;
-    // On mobile, surface the map first so the popup is actually visible.
-    if(isMobileView()) mobTab('map');
     var d=getD(t.depot);
-    map.setView([t.lat,t.lon],9);
-    window.L.popup().setLatLng([t.lat,t.lon])
-        .setContent('<b style="font-size:13px">'+(t.country||'')+t.depot+'</b><br><span style="color:#64748b;font-size:11px">'+t.port_name+'</span><br><span style="color:'+dcol(d)+';font-weight:700">'+d.toFixed(1)+'h delay</span>')
-        .openOn(map);
+    var doFocus=function(){
+        if(window.map) map.invalidateSize();
+        map.setView([t.lat,t.lon],9);
+        window.L.popup().setLatLng([t.lat,t.lon])
+            .setContent('<b style="font-size:13px">'+(t.country||'')+t.depot+'</b><br><span style="color:#64748b;font-size:11px">'+t.port_name+'</span><br><span style="color:'+dcol(d)+';font-weight:700">'+d.toFixed(1)+'h delay</span>')
+            .openOn(map);
+    };
+    if(isMobileView()){
+        mobTab('map');         // sidebar → map (DOM change)
+        afterLayout(doFocus);  // run AFTER browser applied the layout
+    } else {
+        doFocus();
+    }
 }
 
 // ?? SERVICE TAB ??????????????????????????????????????????????
@@ -1322,10 +1342,21 @@ function seaRoute(a,b){
 function showRoute(svcId){
     var route=ROUTES[svcId];
     if(!route)return;
-    // On mobile, surface the map FIRST so the route polyline, fitBounds zoom,
-    // and the .rpanel overlay are all visible (otherwise they render on the
-    // display:none .mapc and the user sees no reaction).
-    if(isMobileView()) mobTab('map');
+    // On mobile we must surface the map FIRST so .mapc has a real size, then
+    // wait one paint before doing anything Leaflet-related — otherwise setView/
+    // fitBounds run while the container is still 0×0 and the user sees a frozen
+    // map (correct route data, wrong projection, no visible tiles).
+    if(isMobileView()){
+        mobTab('map');
+        afterLayout(function(){_drawRoute(svcId);});
+    } else {
+        _drawRoute(svcId);
+    }
+}
+function _drawRoute(svcId){
+    var route=ROUTES[svcId];
+    if(!route)return;
+    if(window.map) map.invalidateSize(); // re-sync container size on mobile path
     if(routeLayer){map.removeLayer(routeLayer);routeLayer=null;}
     var si=SVC_INFO.find(function(s){return s.svc===svcId;})||{};
     var col=RC[route.region||si.region]||'#1e40af';

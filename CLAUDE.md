@@ -223,6 +223,21 @@ Don't pile session diaries into this file — it should stay evergreen. For per-
 
 ## 10. Recent work log (append-only, newest first)
 
+### 2026-05-25 — Mobile route/port follow-up: deferred map ops + bottom rpanel
+User report: after the previous turn the tap-to-map auto-switch worked, but the map then looked frozen — tiles half-rendered, popup at the wrong spot, the route detail panel covering nearly the whole screen.
+
+Two root causes addressed:
+
+**A. Leaflet ran on a 0×0 container.** `mobTab('map')` flips `.mapc` from `display:none` → `block` synchronously, but the browser hasn't laid out by the time `map.setView()` / `fitBounds()` execute, so Leaflet measures the still-collapsed container and projects coordinates against zero dimensions. Result: blank/garbled map state.
+- Fix: added `afterLayout(cb)` helper — two `requestAnimationFrame` calls = run after the next paint. Both `focusPort()` and the new `_drawRoute(svcId)` (split out of `showRoute` so it can be deferred wholesale) call `map.invalidateSize()` then their own setView/polyline work, but only after the browser has applied the layout change.
+
+**B. `.rpanel` covered 80% of a 360px phone.** Desktop CSS sets `right:12px;width:300px;top:12px;max-height:calc(100% - 24px)` — fine on a wide screen, but on mobile that's a top-right block hiding most of the map. User couldn't see the route, couldn't pan, thought it was frozen.
+- Fix: added a mobile override `[delay_dashboard.html ~ line 178](delay_dashboard.html)` placing `.rpanel` at the bottom of the visible map (`left:8px;right:8px;bottom:8px;width:auto;max-height:45vh;top:auto`). The route polyline above stays visible; the panel content scrolls internally. The existing ✕ button still closes it.
+
+Net: clicking a port/route on mobile now (1) flips to map, (2) waits a frame, (3) Leaflet measures the now-correct container, draws route + popup with right projection, (4) detail sits at the bottom so the map and route remain visible above.
+
+Verified: all 3 `<script>` blocks parse with `new Function()` (3/3 OK).
+
 ### 2026-05-25 — Route polyline now follows sea (was crossing land)
 Issue: every line drawn between ports on the map was a straight line, so Korea→Indonesia chopped through Vietnam/Borneo, Japan→Thailand sliced across the Philippines, etc.
 
