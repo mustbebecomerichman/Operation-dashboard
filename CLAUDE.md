@@ -223,6 +223,36 @@ Don't pile session diaries into this file — it should stay evergreen. For per-
 
 ## 10. Recent work log (append-only, newest first)
 
+### 2026-05-26 — Real root cause of mobile blank-map: flex:1 collapsing .mapc to 0 height
+After three rounds of fixes (cache headers, build badge, deferred RAFs, rebuild fallback) the user still saw a gray screen. The long-press diagnostic on the build badge — added precisely for this — revealed the actual state:
+
+```
+.mapc display: block          ✓
+.mapc has show-map: true      ✓
+.mapc height: 0px             ← bug
+#map clientW×H: 344×0
+map.getSize(): 344×0
+```
+
+CSS hierarchy was the culprit:
+- Desktop rule (line 105): `.mapc{flex:1; …}` — gives `flex-basis:0%`.
+- Mobile rule (line 182): `.mapc{display:none}` — doesn't reset flex.
+- Mobile `.show-map` (line 183): `display:block; height:calc(100vh - 170px)`.
+
+When Map tab is active on mobile, `.side` is hidden, leaving `.mapc` as the only flex child of `.wrap` (which has `height:auto`). `flex:1` with `flex-basis:0%` in an `auto`-height column flex container produces height **0** — the flex algorithm wins over the explicit `height:calc(...)`. So even though `.mapc.show-map` set the height, the browser collapsed it.
+
+Fix ([delay_dashboard.html ~ line 185](delay_dashboard.html)):
+```css
+.mapc{display:none;border-radius:0;flex:none}                          /* break out of flex */
+.mapc.show-map{display:block;height:calc(100vh - 170px);min-height:calc(100vh - 170px);width:100%}
+```
+
+Adding `flex:none` to the base mobile `.mapc` rule overrides the desktop `flex:1`. The explicit `height` then takes effect. `min-height` + `width:100%` are belt-and-braces.
+
+All the earlier-added defenses (`_ensureMapReady`, rebuild fallback, no-cache meta, build badge) stay — they're useful in their own right. But this CSS fix is what makes the map actually render.
+
+Lesson: when "Leaflet isn't loading tiles", check the container's actual rendered dimensions first. We added 3 rounds of JS-level fixes (`afterLayout`, `invalidateSize` permutations, nuclear `map.remove()+initMap()`) before realising the container itself had `height:0`. A 5-line CSS fix beats all of them.
+
 ### 2026-05-26 — Mobile blank-map: cache headers + visible build tag + map rebuild fallback
 After v1.4.16 shipped with the `_ensureMapReady` fix, the user reported still seeing a gray empty map on mobile. Live URL was confirmed to be serving v1.4.16 with all the fixes intact, so the most probable cause was Samsung Internet's aggressive HTML cache (GitHub Pages serves `Cache-Control: max-age=600` and Samsung tends to extend that aggressively across sessions). Three defensive layers added.
 

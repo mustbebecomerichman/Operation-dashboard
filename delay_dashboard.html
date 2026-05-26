@@ -179,8 +179,11 @@ body{font-family:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;backg
   /* Stack layout: sidebar full width, map hidden unless map tab */
   .wrap{flex-direction:column;height:auto;padding:0;gap:0;padding-bottom:60px}
   .side{width:100%;border-radius:0;box-shadow:none;border-bottom:1px solid var(--border);max-height:none;min-height:calc(100vh - 170px)}
-  .mapc{display:none;border-radius:0}
-  .mapc.show-map{display:block;height:calc(100vh - 170px)}
+  /* Reset desktop's .mapc{flex:1} so the explicit height below isn't squashed
+     to 0 by the flex algorithm (flex:1 → flex-basis:0% → height collapses to 0
+     inside .wrap's auto-height column). Confirmed via on-device diagnostic. */
+  .mapc{display:none;border-radius:0;flex:none}
+  .mapc.show-map{display:block;height:calc(100vh - 170px);min-height:calc(100vh - 170px);width:100%}
   /* Route detail panel: on mobile, sit at the BOTTOM of the visible map
      instead of covering the right side. Limits height to ~45vh so the route
      line on the map stays visible above. The user can scroll inside the
@@ -469,7 +472,7 @@ var DEFAULT_APPS_SCRIPT_URL = '';
 var CONFIG = {
     appsScriptUrl: localStorage.getItem('pd_surl') || DEFAULT_APPS_SCRIPT_URL || '',
     adminEmail: 'smmoon@heungaline.com',
-    version: '1.4.18',
+    version: '1.4.19',
     updateUrl: 'https://mustbebecomerichman.github.io/Operation-dashboard/delay_dashboard.html',  // GitHub Pages — auto-update source
     aisApiKey: '',  // aisstream.io API key — set per-device via Admin Panel (stored in localStorage)
     aisProvider: 'aisstream',  // 'aisstream' | 'datalastic' | 'marinetraffic' | 'vesselfinder'
