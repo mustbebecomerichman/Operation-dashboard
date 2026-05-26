@@ -153,9 +153,16 @@ body{font-family:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;backg
 /* ?? MOBILE RESPONSIVE ????????????????????????? */
 @media(max-width:768px){
   body{overflow:hidden}
-  .hdr{height:52px;padding:0 14px}
-  .hdr-title{font-size:14px}
+  .hdr{height:52px;padding:0 12px;gap:8px}
+  .hdr-title{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+  .hdr-right{gap:4px;flex-shrink:0}
+  .hdr-btn{padding:5px 10px;font-size:11px;white-space:nowrap}
   .live-pill{display:none}
+  /* Hide non-essential header items on mobile to prevent overflow */
+  #uinfo{display:none!important}
+  .hdr-right a.hdr-btn[href]{display:none}
+  /* Force admin btn hidden on mobile (overrides inline style set by JS) */
+  #adminBtn{display:none!important}
   .kpi{padding:6px 10px;gap:4px;overflow-x:auto}
   .kpi-c{min-width:72px;padding:6px 4px}
   .kn{font-size:18px}
@@ -167,7 +174,7 @@ body{font-family:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;backg
   .mapc.show-map{display:block;height:calc(100vh - 170px)}
   /* Bottom navigation */
   .mob-nav{display:flex!important;position:fixed;bottom:0;left:0;right:0;height:60px;background:#fff;border-top:1px solid var(--border);box-shadow:0 -2px 8px rgba(0,0,0,.1);z-index:5000}
-  .mob-nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;font-size:10px;font-family:inherit;color:var(--muted);cursor:pointer;padding:6px;transition:color .15s}
+  .mob-nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;font-size:10px;font-family:inherit;color:var(--muted);cursor:pointer;padding:6px 2px;transition:color .15s;min-width:0}
   .mob-nav-btn.active{color:var(--accent)}
   .mob-nav-btn .mnicon{font-size:20px;line-height:1}
   /* Bigger form elements on mobile */
@@ -176,8 +183,6 @@ body{font-family:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;backg
   .scont{padding:14px}
   /* Sidebar tabs bigger */
   .stab{padding:14px 4px;font-size:13px}
-  /* Hide desktop admin btn on mobile */
-  #adminBtn{display:none}
   .uform{gap:10px}
 }
 @media(min-width:769px){
@@ -450,7 +455,7 @@ var DEFAULT_APPS_SCRIPT_URL = '';
 var CONFIG = {
     appsScriptUrl: localStorage.getItem('pd_surl') || DEFAULT_APPS_SCRIPT_URL || '',
     adminEmail: 'smmoon@heungaline.com',
-    version: '1.4.12',
+    version: '1.4.13',
     updateUrl: 'https://mustbebecomerichman.github.io/Operation-dashboard/delay_dashboard.html',  // GitHub Pages — auto-update source
     aisApiKey: '',  // aisstream.io API key — set per-device via Admin Panel (stored in localStorage)
     aisProvider: 'aisstream',  // 'aisstream' | 'datalastic' | 'marinetraffic' | 'vesselfinder'
@@ -2521,6 +2526,7 @@ window.onload=initAuth;
 <nav class="mob-nav" id="mobNav" style="display:none">
   <button class="mob-nav-btn active" id="mn_port" onclick="mobTab('port')"><span class="mnicon">🚢</span>Port</button>
   <button class="mob-nav-btn" id="mn_service" onclick="mobTab('service')"><span class="mnicon">🌐</span>Routes</button>
+  <button class="mob-nav-btn" id="mn_vessel" onclick="mobTab('vessel')"><span class="mnicon">⚓</span>Vessels</button>
   <button class="mob-nav-btn" id="mn_update" onclick="mobTab('update')"><span class="mnicon">✏️</span>Input</button>
   <button class="mob-nav-btn" id="mn_map" onclick="mobTab('map')"><span class="mnicon">🗺️</span>Map</button>
 </nav>
