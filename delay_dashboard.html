@@ -472,7 +472,7 @@ var DEFAULT_APPS_SCRIPT_URL = '';
 var CONFIG = {
     appsScriptUrl: localStorage.getItem('pd_surl') || DEFAULT_APPS_SCRIPT_URL || '',
     adminEmail: 'smmoon@heungaline.com',
-    version: '1.4.19',
+    version: '1.4.20',
     updateUrl: 'https://mustbebecomerichman.github.io/Operation-dashboard/delay_dashboard.html',  // GitHub Pages — auto-update source
     aisApiKey: '',  // aisstream.io API key — set per-device via Admin Panel (stored in localStorage)
     aisProvider: 'aisstream',  // 'aisstream' | 'datalastic' | 'marinetraffic' | 'vesselfinder'
@@ -649,6 +649,11 @@ function showApp(){
     fetchLive();
     renderPortTab();
     updateKPI();
+    // Background-load auto-generated dense sea waypoints. File is built by
+    // scripts/generate-route-coords.py from ROUTES + WP + _RT — provides
+    // smooth, sea-following polylines for every route that doesn't already
+    // have a hand-tuned dense coords[] array (e.g. KST/SWRG).
+    loadRouteCoords();
     if(CONFIG.appsScriptUrl){
         rtimer=setInterval(function(){fetchLive();updateKPI();if(tab==='port')updatePortCards();},CONFIG.refreshMs);
     }
@@ -898,21 +903,31 @@ function renderUpdateTab(){
         document.getElementById('scont').innerHTML='<div class="nodata" style="color:var(--danger)">⚠️ Reporter role or higher required</div>';
         return;
     }
-    // Unique ports sorted by name
+    // Build port catalog once for search filter.
     var portMap={};
     TERMINALS.forEach(function(t){
         if(!portMap[t.port_code])portMap[t.port_code]={name:t.port_name,country:t.country||''};
     });
-    var portopts=Object.keys(portMap).sort(function(a,b){
+    var portList=Object.keys(portMap).sort(function(a,b){
         return portMap[a].name.localeCompare(portMap[b].name);
-    }).map(function(pc){
-        return '<option value="'+pc+'">'+portMap[pc].country+' '+pc+' → '+portMap[pc].name+'</option>';
-    }).join('');
+    });
+    // Stash on window so updatePortPicker() can reach it without re-scan.
+    window._portMap=portMap; window._portList=portList;
     document.getElementById('scont').innerHTML=
         '<div class="uform">'+
         '<div class="reporter-pill">👤 Reporter: <span class="rp-em">'+sess.email+'</span></div>'+
-        '<div class="fg"><label>Port</label>'+
-          '<select id="psel" onchange="onPortChange()"><option value="">Select port…</option>'+portopts+'</select>'+
+        // Searchable port picker — type the 5-char code (e.g. "KRPUS") or any
+        // part of the port name/country, click a result to select. Replaces
+        // the old <select> whose native type-ahead only matched the country
+        // prefix shown before the code.
+        '<div class="fg" style="position:relative">'+
+          '<label>Port</label>'+
+          '<input type="text" id="psearch" autocomplete="off" placeholder="🔍 Type 5-char code or port name (e.g. KRPUS / Busan)" '+
+            'oninput="updatePortPicker()" onfocus="updatePortPicker()" '+
+            'style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px">'+
+          '<input type="hidden" id="psel">'+
+          '<div id="psearchSel" style="margin-top:4px;font-size:11px;color:var(--muted);display:none"></div>'+
+          '<div id="psearchList" style="display:none;position:absolute;left:0;right:0;top:100%;margin-top:2px;background:#fff;border:1px solid var(--border);border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.12);max-height:240px;overflow-y:auto;z-index:1000"></div>'+
         '</div>'+
         '<div class="fg" id="terminalFg" style="display:none"><label>Terminal</label>'+
           '<select id="dsel"><option value="">Select terminal…</option></select>'+
@@ -927,6 +942,88 @@ function renderUpdateTab(){
         '<div class="logsec"><div class="logt">📋 Today\'s Entries</div><div id="dlog"></div></div>';
     renderLog();
 }
+// Filtered port list driven by the typeable search input. Matches against
+// port code (5-char like KRPUS), port name, and country code. Case-insensitive.
+function updatePortPicker(){
+    var qEl=document.getElementById('psearch');
+    var listEl=document.getElementById('psearchList');
+    if(!qEl||!listEl) return;
+    var q=(qEl.value||'').trim().toLowerCase();
+    var portMap=window._portMap||{}, portList=window._portList||[];
+    var matches=portList;
+    if(q){
+        matches=portList.filter(function(pc){
+            var pm=portMap[pc]||{};
+            return pc.toLowerCase().indexOf(q)>=0
+                || (pm.name||'').toLowerCase().indexOf(q)>=0
+                || (pm.country||'').toLowerCase().indexOf(q)>=0;
+        });
+    }
+    if(!matches.length){
+        listEl.innerHTML='<div style="padding:8px 12px;color:var(--muted);font-size:12px">No matching port</div>';
+        listEl.style.display='block';
+        return;
+    }
+    // Cap to 50 rows for perf; user can type more to narrow.
+    var rows=matches.slice(0,50).map(function(pc){
+        var pm=portMap[pc]||{};
+        // Highlight the matched substring for visual feedback.
+        function hl(s){
+            if(!q) return s;
+            var i=s.toLowerCase().indexOf(q);
+            if(i<0) return s;
+            return s.slice(0,i)+'<b style="background:#fef3c7;color:#92400e">'+s.slice(i,i+q.length)+'</b>'+s.slice(i+q.length);
+        }
+        return '<div onclick="selectPort(\''+pc+'\')" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid #f1f5f9;font-size:13px" onmouseenter="this.style.background=\'#f0f9ff\'" onmouseleave="this.style.background=\'\'">'
+            +'<span style="color:#64748b;font-size:11px;font-weight:600">'+hl(pm.country||'')+'</span> '
+            +'<span style="font-weight:700;font-family:ui-monospace,monospace">'+hl(pc)+'</span>'
+            +' <span style="color:#64748b">→</span> '
+            +'<span>'+hl(pm.name||'')+'</span>'
+            +'</div>';
+    }).join('');
+    listEl.innerHTML=rows+(matches.length>50?'<div style="padding:6px 12px;color:#94a3b8;font-size:11px">… '+(matches.length-50)+' more · keep typing to narrow</div>':'');
+    listEl.style.display='block';
+}
+function selectPort(pc){
+    document.getElementById('psel').value=pc;
+    var portMap=window._portMap||{};
+    var pm=portMap[pc]||{};
+    var qEl=document.getElementById('psearch');
+    if(qEl) qEl.value=(pm.country||'')+' '+pc+' → '+(pm.name||'');
+    var selEl=document.getElementById('psearchSel');
+    if(selEl){
+        selEl.style.display='block';
+        selEl.innerHTML='✓ Selected: <b>'+pc+'</b> — '+(pm.name||'')+' <a href="#" onclick="clearPortPick(event)" style="color:#dc2626;margin-left:8px;text-decoration:none">clear</a>';
+    }
+    document.getElementById('psearchList').style.display='none';
+    onPortChange();
+}
+function clearPortPick(e){
+    if(e&&e.preventDefault) e.preventDefault();
+    document.getElementById('psel').value='';
+    document.getElementById('psearch').value='';
+    var selEl=document.getElementById('psearchSel');
+    if(selEl){selEl.style.display='none'; selEl.innerHTML='';}
+    document.getElementById('psearchList').style.display='none';
+    onPortChange();
+}
+// Dismiss the dropdown when clicking outside.
+document.addEventListener('click',function(e){
+    var list=document.getElementById('psearchList');
+    var input=document.getElementById('psearch');
+    if(!list||!input) return;
+    if(e.target===input||list.contains(e.target)) return;
+    list.style.display='none';
+});
+// New UX (2026-05-26):
+// — Port selection always shows a single port-level summary at the top.
+// — The main delay form's Delay/Reason fields are PORT-LEVEL: clicking
+//   "Submit Delay" applies the same value to every terminal of the port.
+// — If the port has multiple terminals, an optional "Override specific
+//   terminals ▼" disclosure lets the user surgically tweak per-terminal
+//   values. Only terminals with their own value typed in the override table
+//   diverge from the port-level value.
+// — Single-terminal ports skip the override section entirely.
 function onPortChange(){
     var pc=document.getElementById('psel').value;
     var fg=document.getElementById('terminalFg');
@@ -934,172 +1031,184 @@ function onPortChange(){
     var filtered=TERMINALS.filter(function(t){return t.port_code===pc;});
     if(!filtered.length){fg.style.display='none';return;}
 
+    // Hidden field that submitDelay() reads — always set to the port's first
+    // terminal so submitDelay's existing "depot" plumbing works in the
+    // single-terminal case. In the multi-terminal case we ignore it and use
+    // the per-terminal table instead.
+    var depotHidden='<input type="hidden" id="dsel" value="'+filtered[0].depot+'">';
+
     if(filtered.length===1){
-        // Single terminal: simple dropdown (original behavior)
-        fg.innerHTML='<label style="font-size:12px;font-weight:600;color:#475569">Terminal</label>'
-            +'<select id="dsel" style="margin-top:4px"><option value="'+filtered[0].depot+'">'
+        // Single-terminal port — port-level delay IS the terminal delay.
+        fg.innerHTML=depotHidden
+            +'<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:8px 12px;font-size:12px">'
+            +'<b style="color:#075985">'+pc+'</b> <span style="color:#64748b">·</span> '
             +(filtered[0].country||'')+filtered[0].depot+' → '+filtered[0].port_name
-            +'</option></select>';
+            +'<div style="font-size:11px;color:#64748b;margin-top:3px">Single terminal — the delay you enter below applies to this terminal only.</div>'
+            +'</div>';
         fg.style.display='';
         return;
     }
 
-    // Multiple terminals: bulk input mode
+    // Multi-terminal port — port-level header + optional per-terminal override.
     var today=new Date().toISOString().split('T')[0];
     var existing=JSON.parse(localStorage.getItem('pd_'+today)||'[]');
 
-    var rows=filtered.map(function(t,i){
+    var overrideRows=filtered.map(function(t,i){
         var ex=existing.find(function(d){return d.depot===t.depot;});
         var dv=ex?ex.delay:'';
         var dr=ex?ex.reason:'';
         return '<tr style="border-bottom:1px solid #f1f5f9">'
             +'<td style="padding:5px 6px;font-size:11px;font-weight:600;white-space:nowrap">'
             +(t.country||'')+t.depot+'</td>'
-            +'<td style="padding:5px 4px;font-size:11px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+t.port_name+'">'+t.port_name+'</td>'
+            +'<td style="padding:5px 4px;font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+t.port_name+'">'+t.port_name+'</td>'
             +'<td style="padding:5px 4px"><input type="number" class="bulk-dval" data-depot="'+t.depot+'" '
-            +'value="'+dv+'" placeholder="0.0" min="0" step="0.5" '
-            +'style="width:56px;padding:3px 4px;border:1px solid #e2e8f0;border-radius:4px;font-size:12px;text-align:center"></td>'
+            +'value="'+dv+'" placeholder="" min="0" step="0.5" '
+            +'style="width:60px;padding:4px 6px;border:1px solid #e2e8f0;border-radius:4px;font-size:12px;text-align:center"></td>'
             +'<td style="padding:5px 4px"><input type="text" class="bulk-dreason" data-depot="'+t.depot+'" '
-            +'value="'+dr+'" placeholder="reason" '
-            +'style="width:100%;padding:3px 6px;border:1px solid #e2e8f0;border-radius:4px;font-size:11px"></td>'
+            +'value="'+dr+'" placeholder="(uses port-level reason)" '
+            +'style="width:100%;padding:4px 6px;border:1px solid #e2e8f0;border-radius:4px;font-size:11px"></td>'
             +'</tr>';
     }).join('');
 
-    fg.innerHTML=
-        '<div style="font-size:12px;font-weight:600;color:#475569;margin-bottom:6px">Terminals at '+pc+' <span style="font-weight:400;color:#94a3b8">('+filtered.length+' terminals)</span></div>'
-        // Auto-fill control
-        +'<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:8px 10px;margin-bottom:8px;font-size:12px">'
-        +'<b>Auto-fill</b>: '
-        +'<input type="number" id="autoFillVal" placeholder="delay h" min="0" step="0.5" '
-        +'style="width:60px;padding:2px 6px;border:1px solid #93c5fd;border-radius:4px;font-size:12px;text-align:center"> '
-        +'<input type="text" id="autoFillReason" placeholder="reason (optional)" '
-        +'style="width:140px;padding:2px 6px;border:1px solid #93c5fd;border-radius:4px;font-size:12px"> '
-        +'<button onclick="applyAutoFill()" style="background:#3b82f6;color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer">Apply All</button>'
-        +'<span style="color:#64748b;font-size:11px;margin-left:6px">→ fill all empty rows</span>'
+    fg.innerHTML=depotHidden
+        // Port-level summary
+        +'<div style="background:#ecfdf5;border:1px solid #6ee7b7;border-radius:6px;padding:8px 12px;font-size:12px;margin-bottom:8px">'
+        +'<b style="color:#065f46">'+pc+'</b> <span style="color:#94a3b8">·</span> '+filtered.length+' terminals'
+        +'<div style="font-size:11px;color:#047857;margin-top:3px">📍 The Delay value below applies to <b>all '+filtered.length+' terminals</b> by default.</div>'
         +'</div>'
-        // Table
+        // Override disclosure (collapsed by default)
+        +'<details style="border:1px solid #e2e8f0;border-radius:6px;background:#fff">'
+        +'<summary style="padding:8px 12px;cursor:pointer;font-size:12px;color:#475569;user-select:none">'
+        +'  ⚙️ Override specific terminals <span style="color:#94a3b8;font-weight:400">(optional — leave blank to use port-level)</span>'
+        +'</summary>'
+        +'<div style="padding:8px 10px;border-top:1px solid #e2e8f0">'
         +'<div style="overflow-y:auto;max-height:260px;border:1px solid #e2e8f0;border-radius:6px">'
         +'<table style="width:100%;border-collapse:collapse">'
         +'<thead><tr style="background:#f8fafc;position:sticky;top:0">'
         +'<th style="padding:5px 6px;font-size:11px;text-align:left;white-space:nowrap">Depot</th>'
         +'<th style="padding:5px 6px;font-size:11px;text-align:left">Terminal</th>'
-        +'<th style="padding:5px 4px;font-size:11px;text-align:center">Delay(h)</th>'
+        +'<th style="padding:5px 4px;font-size:11px;text-align:center;width:70px">Delay(h)</th>'
         +'<th style="padding:5px 4px;font-size:11px;text-align:left">Reason</th>'
         +'</tr></thead>'
-        +'<tbody>'+rows+'</tbody>'
+        +'<tbody>'+overrideRows+'</tbody>'
         +'</table></div>'
-        +'<button class="sbtn" onclick="submitBulkDelay()" style="margin-top:8px;width:100%">📤 Submit All</button>';
+        +'<div style="font-size:11px;color:#94a3b8;margin-top:6px">Tip: only fill Delay for terminals that differ from the port-level value. Blank rows inherit the port-level Delay.</div>'
+        +'</div></details>';
     fg.style.display='';
 }
 
-function applyAutoFill(){
-    var dv=document.getElementById('autoFillVal').value;
-    var dr=document.getElementById('autoFillReason').value;
-    if(!dv){alert('Enter a delay value first.');return;}
+// Unified submit (2026-05-26):
+// — Reads port-level Delay/Reason/Memo from the main form (dval/dreason/dmemo).
+// — Looks up all terminals for the selected port.
+// — For each terminal: if the per-terminal override table has a typed value,
+//   that wins; otherwise the port-level value is applied. Same for reason.
+// — Single-terminal ports just write one entry using the port-level inputs.
+// — `submitBulkDelay()` kept as alias for back-compat with any external caller.
+function submitBulkDelay(){submitDelay();}
+function submitDelay(){
+    var pc=document.getElementById('psel').value;
+    var dv=parseFloat(document.getElementById('dval').value);
+    var dr=(document.getElementById('dreason').value||'').trim();
+    var dm=(document.getElementById('dmemo')?document.getElementById('dmemo').value:'').trim();
+    var sc=document.getElementById('svcSel')?document.getElementById('svcSel').value:'';
+    if(!pc){alert('Please select a port first.');return;}
+    var portTerms=TERMINALS.filter(function(t){return t.port_code===pc;});
+    if(!portTerms.length){alert('No terminals found for this port.');return;}
+
+    // Per-terminal overrides (only present in multi-terminal mode).
+    var overrideVals={}, overrideReasons={};
     document.querySelectorAll('.bulk-dval').forEach(function(inp){
-        if(!inp.value)inp.value=dv;  // only fill empty
+        if(inp.value!=='') overrideVals[inp.dataset.depot]=parseFloat(inp.value);
     });
     document.querySelectorAll('.bulk-dreason').forEach(function(inp){
-        if(!inp.value&&dr)inp.value=dr;
+        if(inp.value!=='') overrideReasons[inp.dataset.depot]=inp.value;
     });
-}
+    var hasOverrides=Object.keys(overrideVals).length>0;
 
-function submitBulkDelay(){
-    var dvInputs=document.querySelectorAll('.bulk-dval');
-    if(!dvInputs.length){submitDelay();return;}  // fallback single mode
+    // Validate: need either a port-level value OR at least one override.
+    if(isNaN(dv) && !hasOverrides){
+        alert('Enter a delay value for the port, or fill at least one terminal override row.');
+        return;
+    }
+
     var today=new Date().toISOString().split('T')[0];
     var td=JSON.parse(localStorage.getItem('pd_'+today)||'[]');
-    var submitted=0,skipped=0;
+    var entries=[];
 
-    // Calculate average of filled values for auto-fill of unfilled
-    var filled=[];
-    dvInputs.forEach(function(inp){if(inp.value!=='')filled.push(parseFloat(inp.value));});
-    var avg=filled.length?filled.reduce(function(a,b){return a+b;},0)/filled.length:0;
+    portTerms.forEach(function(t){
+        var depot=t.depot;
+        var hasOwn=overrideVals[depot]!==undefined;
+        // Skip a terminal only if there's NO port-level value AND no override
+        // for this terminal — i.e. the user explicitly didn't intend to update it.
+        if(isNaN(dv) && !hasOwn) return;
+        var useVal=hasOwn?overrideVals[depot]:dv;
+        var useReason=overrideReasons[depot]||dr||'';
+        var en={
+            depot:depot,
+            port_code:t.port_code||'',
+            port_name:t.port_name||'',
+            service_code:sc,
+            delay:useVal,
+            delay_hours:useVal,
+            reason:useReason,
+            note:useReason,
+            memo:dm,
+            date:today,
+            time:new Date().toLocaleTimeString('ko-KR'),
+            reporter:sess.email,
+            // Tag for log readability — port-level vs per-terminal override
+            scope:hasOwn?'terminal':'port'
+        };
+        entries.push(en);
+    });
 
-    dvInputs.forEach(function(inp){
-        var depot=inp.dataset.depot;
-        var dv=inp.value!==''?parseFloat(inp.value):avg;  // auto-fill with avg if empty
-        var drInput=document.querySelector('.bulk-dreason[data-depot="'+depot+'"]');
-        var dr=drInput?drInput.value:'';
-        var t=TERMINALS.find(function(x){return x.depot===depot;})||{};
-        var en={depot:depot,port_code:t.port_code||'',port_name:t.port_name||'',
-                delay:dv,delay_hours:dv,reason:dr||'(auto-filled avg)',note:dr,memo:'',
-                date:today,time:new Date().toLocaleTimeString(),reporter:sess.email};
-        var xi=td.findIndex(function(d){return d.depot===depot;});
-        if(xi>=0)td[xi]=en;else td.push(en);
-        liveD[depot]=dv;
-        // Push to Apps Script
-        if(CONFIG.appsScriptUrl){
-            fetch(CONFIG.appsScriptUrl,{method:'POST',mode:'no-cors',
-                headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'updateDelay',data:en})})
-            .catch(function(){});
-        }
-        submitted++;
+    if(!entries.length){alert('Nothing to submit.');return;}
+
+    var sbtn=document.querySelector('.sbtn');
+    if(sbtn){sbtn.disabled=true;sbtn.textContent='Submitting '+entries.length+'…';}
+
+    // Optimistic local write — works offline too.
+    entries.forEach(function(en){
+        var xi=td.findIndex(function(d){return d.depot===en.depot;});
+        if(xi>=0) td[xi]=en; else td.push(en);
+        liveD[en.depot]=en.delay;
     });
     localStorage.setItem('pd_'+today,JSON.stringify(td));
-    updateKPI(); updateMks();
-    // Reset
-    document.getElementById('psel').value='';
-    document.getElementById('terminalFg').style.display='none';
-    document.getElementById('terminalFg').innerHTML='';
-    renderLog();
-    alert('✓ Submitted '+submitted+' terminals. (Unfilled = avg '+avg.toFixed(1)+'h auto-applied)');
-}
-function submitDelay(){
-    // If bulk mode active, route to bulk submit
-    if(document.querySelectorAll('.bulk-dval').length>0){submitBulkDelay();return;}
-    var dp=document.getElementById('dsel').value;
-    var dv=parseFloat(document.getElementById('dval').value);
-    var dr=document.getElementById('dreason').value;
-    var dm=document.getElementById('dmemo').value;
-    var sc=document.getElementById('svcSel')?document.getElementById('svcSel').value:'';
-    if(!dp||isNaN(dv)||dv<0){alert('Please select a terminal and enter delay hours.');return;}
-    var today=new Date().toISOString().split('T')[0];
-    var t=TERMINALS.find(function(x){return x.depot===dp;})||{};
-    var en={
-        depot:dp,
-        port_code:t.port_code||'',
-        port_name:t.port_name||'',
-        service_code:sc,
-        delay:dv,
-        delay_hours:dv,
-        reason:dr,
-        note:dr,
-        memo:dm,
-        date:today,
-        time:new Date().toLocaleTimeString('ko-KR'),
-        reporter:sess.email
-    };
-    var sbtn=document.querySelector('.sbtn');
-    if(sbtn){sbtn.disabled=true;sbtn.textContent='Submitting…';}
-    var done=function(ok){
+
+    // Push each to Apps Script (fire-and-forget, no-cors so no response read).
+    var pending=entries.length;
+    var done=function(){
         if(sbtn){sbtn.disabled=false;sbtn.textContent='📤 Submit Delay';}
-        if(ok){
-            var td=JSON.parse(localStorage.getItem('pd_'+today)||'[]');
-            var xi=td.findIndex(function(d){return d.depot===dp;});
-            if(xi>=0)td[xi]=en;else td.push(en);
-            localStorage.setItem('pd_'+today,JSON.stringify(td));
-            liveD[dp]=dv;
-            if(document.getElementById('psel'))document.getElementById('psel').value='';
-            if(document.getElementById('terminalFg'))document.getElementById('terminalFg').style.display='none';
-            document.getElementById('dsel').value='';
-            document.getElementById('dval').value='';
-            document.getElementById('dreason').value='';
-            if(document.getElementById('dmemo'))document.getElementById('dmemo').value='';
-            renderLog(); updateKPI(); updateMks();
+        // Reset the form so user can pick another port.
+        if(typeof clearPortPick==='function'){
+            try{ clearPortPick({preventDefault:function(){}}); }catch(_){}
         }
+        if(document.getElementById('dval'))    document.getElementById('dval').value='';
+        if(document.getElementById('dreason')) document.getElementById('dreason').value='';
+        if(document.getElementById('dmemo'))   document.getElementById('dmemo').value='';
+        renderLog(); updateKPI(); updateMks();
+        var msg='✓ Submitted '+entries.length+' delay entr'+(entries.length===1?'y':'ies');
+        if(hasOverrides){
+            var ovCount=entries.filter(function(e){return e.scope==='terminal';}).length;
+            msg+=' ('+ovCount+' terminal override'+(ovCount===1?'':'s')+', '+(entries.length-ovCount)+' port-level)';
+        }
+        if(window.toast) toast(msg); else console.log(msg);
     };
-    if(CONFIG.appsScriptUrl){
+    if(!CONFIG.appsScriptUrl){ done(); return; }
+    // Fire-and-forget each entry to Apps Script. `done` should only run once
+    // after the last response arrives (or after all errors). Track pending
+    // count and call done when it reaches 0.
+    var resolved=0;
+    var onSettle=function(){
+        resolved++;
+        if(resolved>=pending) done();
+    };
+    entries.forEach(function(en){
         fetch(CONFIG.appsScriptUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},
             body:JSON.stringify({action:'updateDelay',data:en})})
-        .then(function(){done(true);})
-        .catch(function(){
-            // no-cors can't read response — assume success and save locally
-            done(true);
-        });
-    }else{
-        done(true);
-    }
+        // no-cors responses are opaque — both .then and .catch land here
+        .then(onSettle, onSettle);
+    });
 }
 function renderLog(){
     var el=document.getElementById('dlog');
@@ -1130,6 +1239,28 @@ function initMap(){
 // Force Leaflet to re-measure container + reload visible tiles. Safe after a
 // display:none → display:block transition. Tile layer reuses cached tiles
 // when the view didn't change so this is cheap.
+// Background-loads data/route-coords.json — a precomputed map of
+// {svcId: [{lat,lon,port?}, ...]} containing dense sea-following waypoints
+// for every route. Generated offline by scripts/generate-route-coords.py.
+// On success, stashes the result on window._routeCoords so _drawRoute() can
+// prefer it over the embedded port-only ROUTES[svc].coords. Failure is silent —
+// the dashboard falls back to the runtime seaRoute() enrichment.
+function loadRouteCoords(){
+    if(window._routeCoords) return Promise.resolve(window._routeCoords);
+    return fetch('data/route-coords.json',{cache:'no-store'})
+        .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+        .then(function(j){
+            window._routeCoords=j||{};
+            // Pre-cache count for diagnostics
+            window._routeCoordsCount=Object.keys(window._routeCoords).length;
+            return window._routeCoords;
+        })
+        .catch(function(err){
+            console.warn('[loadRouteCoords] could not load data/route-coords.json:', err.message,'— falling back to runtime seaRoute()');
+            window._routeCoords={};
+            return {};
+        });
+}
 function _ensureMapReady(){
     var m=window.map||initMap();
     if(!m) return;
@@ -1417,28 +1548,32 @@ function _drawRoute(svcId){
     var si=SVC_INFO.find(function(s){return s.svc===svcId;})||{};
     var col=RC[route.region||si.region]||'#1e40af';
 
-    // ── Map 항적선: coords[] WP 직접 사용 (실제 항행 경로) ──
-    // route.coords[] may be one of two shapes:
-    //   (a) "port-only" — one entry per ROUTES.ports[] item, holding just the
-    //       port's lat/lon. Connecting these directly draws straight lines that
-    //       cross land (e.g. Korea→Indonesia chops through Vietnam/Borneo).
-    //   (b) "dense"    — explicit sea waypoints between ports. Use as-is.
-    // We treat coords[] as port-only when its length matches ports[]. Otherwise
-    // (dense) we trust the uploaded path. The port-only case is then enriched
-    // by seaRoute() between each consecutive port using the regional WP table.
+    // Priority order for the polyline points (highest wins):
+    //   1. route.coords[] when len ≠ ports.length — HAND-TUNED dense path
+    //      (e.g. KST/SWRG's 392 points). Trusted as user-authored truth.
+    //   2. window._routeCoords[svcId]  — auto-generated dense sea waypoints
+    //      loaded from data/route-coords.json at startup. Smooth curves
+    //      that follow the regional WP graph.
+    //   3. route.ports[] alone, with seaRoute() applied — fallback when neither
+    //      hand-tuned nor auto-generated coords are available (e.g. JSON not
+    //      loaded yet, or a new route added to ROUTES).
     var pts=[];
+    var loadedDense=(window._routeCoords||{})[svcId];
     var _coordsLen=(route.coords||[]).length;
     var _portsLen=(route.ports||[]).length;
-    var _dense=route.coords && _coordsLen>0 && _coordsLen!==_portsLen;
-    if(_dense){
+    var _handDense=route.coords && _coordsLen>0 && _coordsLen!==_portsLen;
+    if(_handDense){
         route.coords.forEach(function(c){
             if(c.lat&&c.lon)pts.push([c.lat,c.lon]);
         });
+    } else if(loadedDense && loadedDense.length>1){
+        loadedDense.forEach(function(c){
+            if(c.lat&&c.lon)pts.push([c.lat,c.lon]);
+        });
     } else if(route.ports&&route.ports.length){
-        // Port-only path. Prefer per-port coords from route.coords[i] (which
-        // may carry custom approach points), else fall back to TERMINALS lookup.
-        // Then enrich the polyline with seaRoute() waypoints between each pair
-        // so the line stays in water instead of slicing across land.
+        // Last-resort port-only fallback. Build port lat/lons from route.coords
+        // (port-only flavour) or TERMINALS, then run seaRoute() between each
+        // consecutive pair so the line stays in water.
         var portCoords=[];
         route.ports.forEach(function(pc,i){
             var c=route.coords&&route.coords[i];
@@ -1450,7 +1585,6 @@ function _drawRoute(svcId){
             pts.push(portCoords[0]);
             for(var k=1;k<portCoords.length;k++){
                 var seg=seaRoute(portCoords[k-1],portCoords[k]);
-                // seaRoute returns [from, wp1, ..., to]; skip from to avoid duplicate endpoint.
                 for(var j=1;j<seg.length;j++)pts.push(seg[j]);
             }
         }

@@ -223,6 +223,38 @@ Don't pile session diaries into this file — it should stay evergreen. For per-
 
 ## 10. Recent work log (append-only, newest first)
 
+### 2026-05-26 — Input UX overhaul + auto-generated sea routes
+Three independent improvements in one turn.
+
+**1. Searchable port picker on Input tab** ([delay_dashboard.html:896–953](delay_dashboard.html))
+- Replaced plain `<select>` (whose native type-ahead matched only the country prefix shown before the code) with a text input + filtered dropdown.
+- Filter matches against port_code (5-char like `KRPUS`), port_name, and country — case-insensitive substring. Matched substring is highlighted in yellow.
+- Picks update a hidden `#psel` input so existing submit code keeps working unchanged.
+- Dropdown auto-dismisses on outside-click, shows top 50 results + "… N more" hint.
+
+**2. Port-level delay with optional per-terminal override** ([delay_dashboard.html:1014–1093](delay_dashboard.html))
+- Old UX: picking a multi-terminal port forced the user into a per-terminal table with an "auto-fill avg" gimmick. Single-terminal ports got a separate simpler form.
+- New UX: picking ANY port shows a single port-level Delay/Reason/Memo form. Multi-terminal ports also get a collapsible **⚙️ Override specific terminals** disclosure for surgical edits.
+- On submit, each terminal of the port writes an entry: if the override row has a typed value, that wins; otherwise the port-level value propagates. Result toast tells you "N delay entries (M terminal overrides, K port-level)".
+- `submitBulkDelay` kept as a thin alias for back-compat with any external caller.
+
+**3. Auto-generated dense sea routes for every route** (preserves hand-tuned samples)
+- The KST/SWRG route had 392 hand-placed sea waypoints (user-built sample). The other 75 routes had only the port lat/lons → straight lines crossed land.
+- Added [scripts/generate-route-coords.py](scripts/generate-route-coords.py): parses ROUTES + WP + _RT from delay_dashboard.html, runs sea_route() per port pair (mirroring the JS impl), then great-circle interpolates ~30 points between each WP. Skips routes that already have dense coords (preserves KST/KBX/KHX1).
+- Output: `data/route-coords.json` (~460 KB, 73 routes, 14,302 waypoints). Loaded lazily by `loadRouteCoords()` in showApp; stashed on `window._routeCoords`.
+- `_drawRoute()` priority order:
+  1. **Hand-tuned** `ROUTES[svc].coords` when `coords.length !== ports.length` (e.g. KST).
+  2. **Auto-generated** `window._routeCoords[svc]` from the JSON.
+  3. **Runtime fallback** — port-only + seaRoute() enrichment, in case the JSON failed to load (offline, or a route added after the last regen).
+
+Regenerate workflow:
+```
+python scripts/generate-route-coords.py
+```
+Re-run after editing ROUTES, WP, or _RT.
+
+Verified: all 4 `<script>` blocks parse with `new Function()` (4/4 OK).
+
 ### 2026-05-26 — Real root cause of mobile blank-map: flex:1 collapsing .mapc to 0 height
 After three rounds of fixes (cache headers, build badge, deferred RAFs, rebuild fallback) the user still saw a gray screen. The long-press diagnostic on the build badge — added precisely for this — revealed the actual state:
 
