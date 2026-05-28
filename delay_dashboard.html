@@ -351,10 +351,10 @@ body{font-family:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;backg
     <span style="font-size:11px;color:var(--muted)">Inspect raw response:</span>
     <button class="bok" onclick="inspectSv('sv_categories')" style="font-size:11px;padding:3px 8px">Categories</button>
     <button class="bok" onclick="inspectSv('sv_snapshot')" style="font-size:11px;padding:3px 8px" title="Fleet snapshot">Fleet Snap</button>
-    <button class="bok" onclick="inspectSv('sv_info')" style="font-size:11px;padding:3px 8px">Fleet Info</button>
-    <button class="bok" onclick="inspectSv('sv_ship_snapshot')" style="font-size:11px;padding:3px 8px" title="GET /ship/snapshot">Ship Snap</button>
-    <button class="bok" onclick="inspectSv('sv_ship_area')" style="font-size:11px;padding:3px 8px" title="GET /ship/position/area">Ship in Zones</button>
-    <button class="bok" onclick="inspectSv('sv_zones')" style="font-size:11px;padding:3px 8px" title="GET /zone/all">Zones</button>
+    <button class="bok" onclick="inspectSv('sv_info')" style="font-size:11px;padding:3px 8px;opacity:0.5" title="GET /fleet/info — currently 403 on this account">Fleet Info ⛔</button>
+    <button class="bok" onclick="inspectSv('sv_ship_snapshot')" style="font-size:11px;padding:3px 8px;opacity:0.5" title="GET /ship/snapshot — currently 403 on this account">Ship Snap ⛔</button>
+    <button class="bok" onclick="inspectSv('sv_ship_area')" style="font-size:11px;padding:3px 8px;opacity:0.5" title="GET /ship/position/area — currently 403 on this account">Ship in Zones ⛔</button>
+    <button class="bok" onclick="inspectSv('sv_zones')" style="font-size:11px;padding:3px 8px;opacity:0.5" title="GET /zone/all — currently 403 on this account">Zones ⛔</button>
    </div>
    <div style="display:flex;gap:4px;align-items:center;margin-top:6px;flex-wrap:wrap">
     <input type="text" id="svShipIdProbe" placeholder="shipId UUID" style="flex:1;min-width:160px;font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:4px">
@@ -366,7 +366,7 @@ body{font-family:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;backg
      <option value="JWC">JWC</option>
      <option value="CUSTOM_ZONE">CUSTOM_ZONE</option>
     </select>
-    <button class="bok" onclick="inspectSv('sv_zone_section',{zoneSection:document.getElementById('svZoneSection').value})" style="font-size:11px;padding:3px 8px">Zone Section</button>
+    <button class="bok" onclick="inspectSv('sv_zone_section',{zoneSection:document.getElementById('svZoneSection').value})" style="font-size:11px;padding:3px 8px;opacity:0.5" title="GET /zone/{section} — currently 403">Zone Section ⛔</button>
    </div>
    <!-- Bulk-register Schedule Code non-own vessels (one-time setup) -->
    <div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--border)">
@@ -472,7 +472,7 @@ var DEFAULT_APPS_SCRIPT_URL = '';
 var CONFIG = {
     appsScriptUrl: localStorage.getItem('pd_surl') || DEFAULT_APPS_SCRIPT_URL || '',
     adminEmail: 'smmoon@heungaline.com',
-    version: '1.4.21',
+    version: '1.4.22',
     updateUrl: 'https://mustbebecomerichman.github.io/Operation-dashboard/delay_dashboard.html',  // GitHub Pages — auto-update source
     aisApiKey: '',  // aisstream.io API key — set per-device via Admin Panel (stored in localStorage)
     aisProvider: 'aisstream',  // 'aisstream' | 'datalastic' | 'marinetraffic' | 'vesselfinder'
@@ -2486,10 +2486,13 @@ function loadSvFleetToMap(){
     var out=document.getElementById('svTestOut');
     var msg=document.getElementById('svMsg');
     msg.style.color='var(--muted)'; msg.textContent='Loading fleet…';
-    if(out){out.style.display='block'; out.textContent='GET sv_info …';}
+    // Use sv_snapshot (Fleet API) — sv_info returns 403 for our subscription
+    // tier. sv_snapshot gives the same data + AIS position for every ship
+    // registered in the workspace (i.e. exactly what Load Fleet should show).
+    if(out){out.style.display='block'; out.textContent='GET sv_snapshot …';}
     ensureSvLayer();
     var t0=Date.now();
-    callSV('sv_info').then(function(data){
+    callSV('sv_snapshot').then(function(data){
         var list=Array.isArray(data)?data:(data&&data.response)||[];
         var placed=0, skipped=0, samples=[];
         list.forEach(function(entry){

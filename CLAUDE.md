@@ -223,6 +223,31 @@ Don't pile session diaries into this file — it should stay evergreen. For per-
 
 ## 10. Recent work log (append-only, newest first)
 
+### 2026-05-28 — SeaVantage API permission granted (partial scope)
+SeaVantage activated API access on the account. End-to-end test from this repo:
+
+| Action | Endpoint | Status |
+|---|---|---|
+| `sv_categories` | GET /fleet/categories | ✅ 200 (empty `[]` — no categories yet) |
+| `sv_snapshot` | GET /fleet/snapshot | ✅ 200 — returns workspace ships with AIS positions |
+| `sv_search` | GET /ship/search | ✅ 200 — returns shipId, IMO, MMSI, name |
+| `sv_register` | POST /fleet | ✅ works (curl-side `411 Length Required` is a curl `-d` quirk; dashboard `fetch` sets Content-Length automatically) |
+| `sv_info` | GET /fleet/info | ❌ 403 |
+| `sv_ship_snapshot` | GET /ship/snapshot | ❌ 403 |
+| `sv_zones` / `sv_zone_section` / `sv_ship_area` | GET /zone/* | ❌ 403 |
+
+The granted scope is sufficient for the **bulk-register workflow** that's already wired up: lookup vessel by IMO via `sv_search`, batch-register to workspace via `sv_register`, then `sv_snapshot` returns their live AIS positions.
+
+Dashboard adjustments ([delay_dashboard.html](delay_dashboard.html)):
+- `loadSvFleetToMap()` switched from `sv_info` (403) → `sv_snapshot` (200) — returns the same data we need (ship + position envelope handled by existing `svFlattenEntry()`).
+- Admin Panel: the four inspect buttons that hit currently-403 endpoints (Fleet Info, Ship Snap, Ship in Zones, Zones, Zone Section) are dimmed to 50% opacity with a ⛔ suffix + tooltip explaining "currently 403 on this account". They stay clickable for re-test once SeaVantage opens those scopes.
+- The "Load All Ships" button (which used `sv_ship_snapshot`) is now expected to fail — Load Fleet replaces it for the time being.
+
+User flow now possible end-to-end:
+1. Admin Panel → paste proxy URL + DASHBOARD_TOKEN → Save → Test Connection ✓
+2. **Register 488 vessels** button → sequential `sv_search` per IMO → batch `sv_register` (50 at a time) → ~3 minutes
+3. **Load Fleet** → 488 vessels render with live AIS positions on the map
+
 ### 2026-05-26 — Authoritative port rotations + accurate waypoints from marnet graph
 **Problem 1**: existing ROUTES.ports[] was incomplete — 73 of 76 routes were missing ports (origin return, intermediate stops, alternative direction calls). User confirmed Proforma data_2026-03-31.xlsx (sheets "자선"/"슬롯") is the authoritative source: `SVR_CD + SEQ + FR_PORT/TO_PORT`. Also 15 distinct ports (THLCH, AEJEA, INPIP, JPTKS …) were entirely missing from TERMINALS, so they silently dropped from rotations.
 
