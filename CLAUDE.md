@@ -223,6 +223,47 @@ Don't pile session diaries into this file — it should stay evergreen. For per-
 
 ## 10. Recent work log (append-only, newest first)
 
+### 2026-05-29 — Comprehensive vessel coverage from 4-month logs + new master
+User uploaded 5 fresh Excel files (1월~4월 voyage logs + new vessel master).
+
+**Inputs added:**
+- `data/monthly/2026-01.xls` ~ `2026-04.xls` — voyage logs (2,595 rows total over 4 months) with column 21 `자선여부` (Checked=own, Unchecked=charter)
+- `Vessel Code_2026-05-28.xls` — newer master (6,149 vessels vs the old 6,122)
+
+**Approach** (`scripts/rebuild-from-monthly.py`):
+1. Read 4 monthly files → split each voyage as OWN (자선=Checked) or CHARTER. Aggregate per vessel:
+   - `own_assignments[code]` = set of services run as own
+   - `charter_assignments[code]` = set of services run as charter
+2. Read new master → vessel lookup (code → IMO, name, dimensions, GT/DWT/TEU/LOA, flag, built).
+3. Rebuild **VESSELS (own only)**: union with existing VESSELS so manually-curated entries aren't lost.
+4. Rebuild **`data/sched-non-own.json` (charters)**: union of three sources for maximum coverage:
+   - Monthly 1-4월 charter assignments (155 vessels)
+   - Schedule Code 2026-03-31 charters (571 vessels, may include forward planning)
+   - Existing JSON (preserve prior curation)
+
+**Results:**
+| | Before | After |
+|---|---|---|
+| VESSELS (own) services | 58 | **59** |
+| VESSELS entries | 195 | **209** |
+| Routes filled with own | 46 | **51** |
+| Charter list (sched-non-own.json) | 488 | **528** |
+| Charter service coverage | ~74 | **74 services** |
+| Truly empty routes (no own + no charter) | — | 10 (CIN, CKJ/1, CQD2, JSS1, KDX2, KHX2, KMS, KXS10, MHX2, NBX) |
+
+**Dynamic button label** ([delay_dashboard.html](delay_dashboard.html)):
+- "Register 488 vessels" → "Register 528 vessels" auto-updated from JSON length via `<span id="svBulkBtnLabel">` + pre-fetch at page load.
+
+Regen workflow (re-runnable):
+```bash
+python scripts/rebuild-from-monthly.py
+```
+
+**SeaVantage end-to-end now possible:**
+1. Click "Register 528 vessels" → ~3 min bulk register charter vessels to workspace
+2. Click "Load Fleet" → `sv_snapshot` returns ~551 ships (23 already there + 528 added) with live AIS positions on the map
+3. Both own + charter vessels visible — full route coverage
+
 ### 2026-05-28 — VESSELS rebuild from HAL/SKR + Schedule cross-reference
 **Problem**: 30 of 76 routes had an empty VESSELS[svc] list — the "Vessels" tab and route detail panel showed no ships for them. User had uploaded the matching Excel files but the data wasn't being used.
 
