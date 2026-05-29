@@ -223,6 +223,22 @@ Don't pile session diaries into this file — it should stay evergreen. For per-
 
 ## 10. Recent work log (append-only, newest first)
 
+### 2026-05-29 — Auto-load SeaVantage fleet on login (no manual click)
+**User report**: "전혀 화면이 바뀌지 않았다. 자사선 위치가 다 표시되는것으로 알고있다."
+
+Cause: SeaVantage fleet was only loaded when the user clicked **Admin Panel → Load Fleet**. The bulk-register + the `sv_snapshot` data pipeline worked, but the default landing screen never called it.
+
+Fix ([delay_dashboard.html](delay_dashboard.html)):
+- New `autoLoadSvFleet()` — silent version of `loadSvFleetToMap()` that doesn't touch Admin Panel UI and skips gracefully when proxy isn't configured.
+- Hooked into `showApp()` after `initMap()` so every login automatically renders all registered ships on the map.
+- 5-minute refresh interval (`svFleetTimer`) keeps AIS positions current. The user no longer needs to touch Admin Panel after the initial setup + bulk-register.
+- Status surfaced to `#svMsg` + `console.log` for diagnostics.
+
+User-visible behavior change:
+- Before: blank map until Admin Panel → Load Fleet clicked.
+- After: map shows 23 ships immediately on login (or 551 after the 528-vessel bulk register).
+- Refresh: every 5 min in background.
+
 ### 2026-05-29 — Comprehensive vessel coverage from 4-month logs + new master
 User uploaded 5 fresh Excel files (1월~4월 voyage logs + new vessel master).
 

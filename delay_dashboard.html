@@ -472,7 +472,7 @@ var DEFAULT_APPS_SCRIPT_URL = '';
 var CONFIG = {
     appsScriptUrl: localStorage.getItem('pd_surl') || DEFAULT_APPS_SCRIPT_URL || '',
     adminEmail: 'smmoon@heungaline.com',
-    version: '1.4.24',
+    version: '1.4.25',
     updateUrl: 'https://mustbebecomerichman.github.io/Operation-dashboard/delay_dashboard.html',  // GitHub Pages — auto-update source
     aisApiKey: '',  // aisstream.io API key — set per-device via Admin Panel (stored in localStorage)
     aisProvider: 'aisstream',  // 'aisstream' | 'datalastic' | 'marinetraffic' | 'vesselfinder'
@@ -654,6 +654,13 @@ function showApp(){
     // smooth, sea-following polylines for every route that doesn't already
     // have a hand-tuned dense coords[] array (e.g. KST/SWRG).
     loadRouteCoords();
+    // Auto-load SeaVantage fleet positions on every login so the user sees
+    // every registered ship on the map without having to open Admin → Load Fleet.
+    // Refreshes every 5 minutes to keep AIS positions current. Silently no-ops
+    // when proxy isn't configured yet (first-time setup).
+    autoLoadSvFleet();
+    if(svFleetTimer){clearInterval(svFleetTimer);}
+    svFleetTimer=setInterval(autoLoadSvFleet, 5*60*1000);
     if(CONFIG.appsScriptUrl){
         rtimer=setInterval(function(){fetchLive();updateKPI();if(tab==='port')updatePortCards();},CONFIG.refreshMs);
     }
@@ -2433,6 +2440,48 @@ function callSV(action,params,opts){
 // ── SEAVANTAGE FLEET RENDERING ───────────────────────────────────────────────
 var svFleetLayer=null;
 var svFleetMarkers={};   // shipId -> L.marker
+var svFleetTimer=null;   // setInterval handle for periodic refresh
+// Silent auto-loader fired from showApp() and on a 5-min timer. Differs from
+// loadSvFleetToMap() in that it doesn't touch the Admin Panel status UI — it
+// just refreshes markers in the background. Skips when proxy isn't configured
+// (first-time setup), keeping login fast for users who haven't set up yet.
+function autoLoadSvFleet(){
+    if(!CONFIG.seavantageProxyUrl || !CONFIG.seavantageToken) return;
+    if(!window.map) return;  // map not ready yet — next tick will pick it up
+    ensureSvLayer();
+    callSV('sv_snapshot').then(function(data){
+        var list=Array.isArray(data)?data:(data&&data.response)||[];
+        if(!list.length) return;
+        var placed=0;
+        list.forEach(function(entry){
+            var v=svFlattenEntry(entry);
+            if(!v.lat||!v.lng||isNaN(v.lat)||isNaN(v.lng)) return;
+            placed++;
+            var icon=makeShipIcon(Number(v.heading)||0,'#16a34a');
+            var html=buildSvPopup(v);
+            var key=v.shipId||('idx'+placed);
+            if(svFleetMarkers[key]){
+                svFleetMarkers[key].setLatLng([v.lat,v.lng]).setIcon(icon).setPopupContent(html);
+            } else {
+                var mk=window.L.marker([v.lat,v.lng],{icon:icon}).bindPopup(html);
+                svFleetLayer.addLayer(mk);
+                svFleetMarkers[key]=mk;
+            }
+        });
+        // Surface the count in the Admin Panel status area when present.
+        var msg=document.getElementById('svMsg');
+        if(msg){
+            msg.style.color='var(--ok)';
+            msg.textContent='✓ Auto-loaded '+placed+' ships ('+new Date().toLocaleTimeString()+')';
+        }
+        // Update KPI bar slot if we add one later. For now, console-log so the
+        // Operations team can verify in DevTools.
+        console.log('[autoLoadSvFleet] placed='+placed+' / total='+list.length);
+    }).catch(function(err){
+        // Silent — auto-loader shouldn't pop modals. Log for diagnostics.
+        console.warn('[autoLoadSvFleet] failed:', err.message);
+    });
+}
 function ensureSvLayer(){
     if(svFleetLayer||!window.map) return svFleetLayer;
     svFleetLayer=window.L.layerGroup().addTo(window.map);
