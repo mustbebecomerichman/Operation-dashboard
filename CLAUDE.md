@@ -223,6 +223,30 @@ Don't pile session diaries into this file — it should stay evergreen. For per-
 
 ## 10. Recent work log (append-only, newest first)
 
+### 2026-05-29 — Own/charter accuracy + strong filter + enriched vessel panel
+Three follow-ups after user reported (1) non-own ships flagged as own, (2) service filter too weak, (3) panel needed more info.
+
+**1. Own/charter classification — HAL+SKR authoritative**
+Bug: `자선여부` column in monthly voyage files flips per-voyage for the same vessel (e.g. AKTR Checked on THS3 but Unchecked on KJS1), so the previous "voyage union" approach pulled charter voyages into own.
+Fix in [scripts/rebuild-from-monthly.py](scripts/rebuild-from-monthly.py):
+- Build `OWN_CODES` set directly from `Vessel Code_HAL_2026-04-02.xls` + `Vessel Code_SKR_2026-04-02.xls` — 70 codes total.
+- `VESSELS` dict iterates `OWN_CODES` only. Anything outside this set → `data/sched-non-own.json`.
+- No more cross-contamination from existing-VESSELS entries.
+Result: VESSELS has exactly 70 unique codes, 100% match with HAL+SKR. Verified.
+
+**2. Service filter — fully hide non-service markers**
+`filterSvFleetByService(svc)` now `svFleetLayer.removeLayer(mk)` for ships not on the service (was `opacity:0.06`). `unfilterSvFleet()` re-adds. `autoLoadSvFleet` mirrors the same logic for newly arriving markers. Cleaner emphasis — when a service is selected, only its ships are on the map.
+
+**3. Vessel side panel — full info dump**
+`showVesselSidePanel(svc, v)` now displays four sections:
+- **선박 제원** (registry): Code, IMO, Call sign, Type, Flag, Built, GT, DWT, TEU, LOA
+- **📡 실시간 AIS** (extracted from svFleetMarkers popup HTML): latitude, longitude, speed, heading, destination, last update time
+- **운항 서비스**: every service this vessel runs as a clickable-style chip, with the currently-selected one highlighted red
+- **현재 항로**: port rotation `A → B → C → ...` for selected service + total distance in NM
+- "← 전체 선박 보기" close button at the bottom
+
+`kindBadge` differentiates `자사선` (red) vs `타사선` (yellow) at the top.
+
 ### 2026-05-29 — Service-first UX + past tracks + solo vessel focus
 Four coordinated changes:
 

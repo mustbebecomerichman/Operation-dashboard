@@ -91,6 +91,23 @@ master = read_master(MASTER)
 master_with_imo = sum(1 for v in master.values() if v['imo'] and v['imo'].isdigit() and len(v['imo']) == 7)
 print(f"  -> {len(master)} vessels in master, {master_with_imo} with valid 7-digit IMO")
 
+# Authoritative OWN-fleet list from HAL + SKR files. These two files define
+# Heung-A Line's and Sinokor Marine's combined own fleet. Anything NOT in this
+# set is treated as a charter vessel, regardless of what the monthly file's
+# `자선여부` column says (that column is per-voyage and unreliable — a vessel
+# can be marked own on one service and charter on another in the same month).
+OWN_CODES = set()
+for fn in [ROOT / "Vessel Code_HAL_2026-04-02.xls", ROOT / "Vessel Code_SKR_2026-04-02.xls"]:
+    if not fn.exists():
+        continue
+    wb = xlrd.open_workbook(str(fn))
+    s = wb.sheets()[0]
+    for r in range(1, s.nrows):
+        code = str(s.cell_value(r, 3)).strip() if s.cell_value(r, 3) else ''
+        if code and re.match(r'^[A-Z0-9_-]+$', code) and len(code) <= 8:
+            OWN_CODES.add(code)
+print(f"  -> Authoritative OWN fleet (HAL+SKR): {len(OWN_CODES)} vessel codes")
+
 
 # ─── 2. Aggregate 4 months of voyage data ────────────────────────────────────
 def read_monthly(fn: Path) -> list:
@@ -117,17 +134,19 @@ for month_file in sorted(MONTHLY_DIR.glob("*.xls")):
 print(f"  -> {len(all_voyages)} total voyage rows across 4 months")
 
 
-# Build vessel → set of services run as OWN
-# Build vessel → set of services run as CHARTER
+# Build vessel → set of services. Bucket by AUTHORITATIVE own-codes set
+# (HAL+SKR), NOT by the per-voyage 자선여부 column. That column flips for the
+# same vessel across voyages (e.g. AKTR=THS3 Checked, AKTR=KJS1 Unchecked) and
+# polluted the previous run with non-own vessels appearing as own.
 own_assignments = defaultdict(set)
 charter_assignments = defaultdict(set)
-for code, svc, is_own in all_voyages:
-    if is_own:
+for code, svc, is_own_voyage in all_voyages:
+    if code in OWN_CODES:
         own_assignments[code].add(svc)
     else:
         charter_assignments[code].add(svc)
-print(f"  -> {len(own_assignments)} vessels seen as OWN, "
-      f"{len(charter_assignments)} as CHARTER")
+print(f"  -> {len(own_assignments)} vessels matched HAL/SKR own list, "
+      f"{len(charter_assignments)} non-own")
 
 
 # ─── 3. Build VESSELS dict (own only) ────────────────────────────────────────
@@ -144,24 +163,28 @@ if m_pre:
             existing_assignments[v['code']].add(svc)
 
 print("[3] Building VESSELS (own fleet) dict…")
+# IMPORTANT: VESSELS contains ONLY codes from the HAL+SKR authoritative own
+# list. Any non-own vessel (slot-share / charter) goes to sched-non-own.json
+# instead. Iterating OWN_CODES guarantees no charter vessel is mis-flagged as
+# own — the previous union-of-sources approach pulled in mis-classified entries
+# from the existing VESSELS dict.
 vessels_out = defaultdict(list)
-# Pass 1: every own vessel from monthly + existing assignments + master coverage
-for code in set(list(own_assignments.keys()) + list(existing_assignments.keys())):
+for code in OWN_CODES:
     services = set(own_assignments.get(code, set()))
-    # Union with existing (preserve manual curations)
+    # Preserve service assignments from existing VESSELS, but only if the code
+    # is genuinely own (i.e. it IS in OWN_CODES — guaranteed by this loop).
     services |= existing_assignments.get(code, set())
     if not services:
         continue
-    # Build vessel record: prefer master data, fall back to existing
-    info = master.get(code) or existing_full.get(code) or {'code': code, 'name': '', 'imo': '', 'flag': '',
-        'built': '', 'gt': 0, 'dwt': 0, 'teu': 0, 'loa': 0.0, 'call': '', 'type': 'Container'}
+    info = master.get(code) or existing_full.get(code) or {
+        'code': code, 'name': '', 'imo': '', 'flag': '',
+        'built': '', 'gt': 0, 'dwt': 0, 'teu': 0, 'loa': 0.0,
+        'call': '', 'type': 'Container'
+    }
     base = {**info}
-    base.setdefault('owner', '사선')
     base['owner'] = '사선'
-    base.setdefault('type', 'CNTR')
     if base.get('type') == 'Container':
         base['type'] = 'CNTR'
-    # Strip helper keys
     base = {k: v for k, v in base.items() if not k.startswith('_')}
     for svc in services:
         vessels_out[svc].append(base.copy())
@@ -170,7 +193,7 @@ for code in set(list(own_assignments.keys()) + list(existing_assignments.keys())
 for svc in vessels_out:
     vessels_out[svc].sort(key=lambda v: -(v.get('teu') or 0))
 vessels_out = dict(sorted(vessels_out.items()))
-print(f"  -> {len(vessels_out)} services, {sum(len(v) for v in vessels_out.values())} total entries")
+print(f"  -> {len(vessels_out)} services, {sum(len(v) for v in vessels_out.values())} total entries (HAL+SKR only)")
 
 
 # ─── 4. Update VESSELS in HTML ───────────────────────────────────────────────
