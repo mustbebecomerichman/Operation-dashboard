@@ -437,9 +437,9 @@ body{font-family:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;backg
 <div class="wrap">
  <div class="side">
   <div class="stabs">
-   <button class="stab active" id="tab-port" onclick="switchTab('port')">PORT</button>
-   <button class="stab" id="tab-service" onclick="switchTab('service')">Routes</button>
+   <button class="stab active" id="tab-service" onclick="switchTab('service')">Service</button>
    <button class="stab" id="tab-vessel" onclick="switchTab('vessel')">Vessels</button>
+   <button class="stab" id="tab-port" onclick="switchTab('port')">Port</button>
    <button class="stab" id="tab-update" onclick="switchTab('update')">Input</button>
   </div>
   <div class="scont" id="scont"></div>
@@ -477,7 +477,7 @@ var DEFAULT_APPS_SCRIPT_URL = '';
 var CONFIG = {
     appsScriptUrl: localStorage.getItem('pd_surl') || DEFAULT_APPS_SCRIPT_URL || '',
     adminEmail: 'smmoon@heungaline.com',
-    version: '1.4.28',
+    version: '1.4.29',
     updateUrl: 'https://mustbebecomerichman.github.io/Operation-dashboard/delay_dashboard.html',  // GitHub Pages — auto-update source
     aisApiKey: '',  // aisstream.io API key — set per-device via Admin Panel (stored in localStorage)
     aisProvider: 'aisstream',  // 'aisstream' | 'datalastic' | 'marinetraffic' | 'vesselfinder'
@@ -546,7 +546,7 @@ var WP = {
 };
 
 // ?? STATE ????????????????????????????????????????????????????
-var map=null, sess=null, routeLayer=null, mks=[], liveD={}, tab='port', rtimer=null;
+var map=null, sess=null, routeLayer=null, mks=[], liveD={}, tab='service', rtimer=null;
 
 // ?? AUTH ?????????????????????????????????????????????????????
 function initAuth(){
@@ -652,7 +652,8 @@ function showApp(){
     }
     initMap();
     fetchLive();
-    renderPortTab();
+    // Default landing tab is Service (per user request 2026-05-29).
+    renderServiceTab();
     updateKPI();
     // Background-load auto-generated dense sea waypoints. File is built by
     // scripts/generate-route-coords.py from ROUTES + WP + _RT — provides
@@ -842,7 +843,7 @@ function renderServiceTab(){
     SVC_INFO.forEach(function(s){rg[s.region]=1;});
     var ropts=Object.keys(rg).sort().map(function(r){return '<option value="'+r+'">'+r+'</option>';}).join('');
     document.getElementById('scont').innerHTML=
-        '<input class="ssearch" id="svs" placeholder="🔍 Search routes..." oninput="updateSvcCards()">'+
+        '<input class="ssearch" id="svs" placeholder="🔍 Search services..." oninput="updateSvcCards()">'+
         '<div class="frow"><select id="rgf" onchange="updateSvcCards()"><option value="">All Regions</option>'+ropts+'</select></div>'+
         '<div id="svcCards"></div>';
     updateSvcCards();
@@ -1564,6 +1565,8 @@ function _drawRoute(svcId){
     // Hide fleet markers that don't operate on this service — focuses attention
     // on the relevant ships. Restored when closeRP() runs.
     filterSvFleetByService(svcId);
+    // Past-track polylines for every OWN vessel on this service (red, faded).
+    drawServicePastTracks(svcId);
 
     // Priority order for the polyline points (highest wins):
     //   1. route.coords[] when len ≠ ports.length — HAND-TUNED dense path
@@ -1687,7 +1690,7 @@ function renderVesselCards(){
         filtered.forEach(function(v,vi){
             var vidx=vlist.indexOf(v);
             h+='<div class="vc" style="display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:6px;background:#fff;cursor:pointer;transition:box-shadow .15s" '+
-               'onclick="showVesselModal(\''+svc+'\','+vidx+')" '+
+               'onclick="focusVessel(\''+svc+'\',\''+v.code+'\')" '+
                'onmouseenter="this.style.boxShadow=\'0 2px 12px rgba(0,0,0,.12)\'" onmouseleave="this.style.boxShadow=\'\'">'+
                '<div style="min-width:48px;text-align:center;background:'+col+'18;border-radius:6px;padding:4px 2px">'+
                '<div style="font-weight:700;font-size:12px;color:'+col+'">'+v.code+'</div>'+
@@ -2194,6 +2197,8 @@ function closeRP(){
     document.getElementById('rpanel').style.display='none';
     if(routeLayer){map.removeLayer(routeLayer);routeLayer=null;}
     clearAisMarkers();
+    clearPastTracks();
+    window._soloVesselImo = null;
     unfilterSvFleet();  // restore all fleet markers to full opacity
 }
 
@@ -2522,6 +2527,141 @@ function callSV(action,params,opts){
 }
 // ── SEAVANTAGE FLEET RENDERING ───────────────────────────────────────────────
 var svFleetLayer=null;
+// Past-track polylines (red/faded) for own vessels on the currently-shown service.
+// Cleared when closeRP() runs.
+var pastTrackLayer=null;
+// IMO → SeaVantage shipId UUID. Populated each time autoLoadSvFleet sees a
+// ship in sv_snapshot. Needed because sv_pasttrack requires shipId, not IMO.
+window._imoToShipId = window._imoToShipId || new Map();
+// Solo-vessel focus mode — when set, all other markers are dimmed and the
+// vessel info side panel is open.
+window._soloVesselImo = null;
+function ensurePastTrackLayer(){
+    if(pastTrackLayer || !window.map) return pastTrackLayer;
+    pastTrackLayer = window.L.layerGroup().addTo(window.map);
+    return pastTrackLayer;
+}
+function clearPastTracks(){
+    if(pastTrackLayer) pastTrackLayer.clearLayers();
+}
+// Draw the past-track polyline for one ship. Silent on permission errors
+// (sv_pasttrack may be 403 until SeaVantage grants the scope).
+function drawShipPastTrack(imo, color){
+    if(!window.map || !CONFIG.seavantageProxyUrl) return Promise.resolve();
+    var shipId = window._imoToShipId.get(String(imo||'').trim());
+    if(!shipId) return Promise.resolve();
+    ensurePastTrackLayer();
+    return callSV('sv_pasttrack',{shipId:shipId}).then(function(data){
+        var arr = Array.isArray(data) ? data : (data && data.response) || [];
+        if(!arr.length) return;
+        // Extract lat/lon from each track point (probe field names)
+        var pts = [];
+        arr.forEach(function(p){
+            var lat = Number(p.lat || p.latitude || (p.position||{}).lat || (p.position||{}).latitude);
+            var lon = Number(p.lon || p.lng || p.longitude || (p.position||{}).lon || (p.position||{}).longitude);
+            if(!isNaN(lat) && !isNaN(lon)) pts.push([lat, lon]);
+        });
+        if(pts.length < 2) return;
+        var line = window.L.polyline(pts, {
+            color: color || '#dc2626', weight: 2, opacity: 0.55,
+            dashArray: '4,4', lineJoin: 'round'
+        });
+        pastTrackLayer.addLayer(line);
+    }).catch(function(err){
+        // Silent on 403 — past-track may not be in granted scope. Log once.
+        if(!window._pastTrackErrorLogged){
+            console.warn('[drawShipPastTrack] failed (likely permission):', err.message);
+            window._pastTrackErrorLogged = true;
+        }
+    });
+}
+// Draw past tracks for every OWN vessel assigned to this service.
+function drawServicePastTracks(svcId){
+    clearPastTracks();
+    var vlist = (VESSELS||{})[svcId] || [];
+    var ownOnly = vlist.filter(function(v){return v.owner==='사선' || svShipKind(v.imo)==='own';});
+    ownOnly.forEach(function(v){
+        drawShipPastTrack(v.imo, '#dc2626');
+    });
+}
+// Solo focus: clicking a vessel hides others, centers on this one, draws its
+// past track, opens its popup. Restores when closeRP() / closeSolo() is called.
+function focusVessel(svc, code){
+    var vlist = (VESSELS||{})[svc] || [];
+    var v = vlist.find(function(x){return x.code===code;});
+    if(!v) return;
+    var imo = String(v.imo||'').trim();
+    if(!imo) { showVesselModal(svc, vlist.indexOf(v)); return; }
+
+    // Switch to map view first (mobile)
+    if(isMobileView()) mobTab('map');
+
+    // Clear any route highlight and past-tracks first
+    if(routeLayer){map.removeLayer(routeLayer); routeLayer=null;}
+    clearPastTracks();
+    document.getElementById('rpanel').style.display='none';
+
+    window._soloVesselImo = imo;
+    afterLayout(function(){
+        _ensureMapReady();
+        // Dim every fleet marker except this one
+        Object.keys(svFleetMarkers).forEach(function(key){
+            var mk = svFleetMarkers[key];
+            try{ mk.setOpacity(String(mk._imo||'') === imo ? 1 : 0.05); }catch(_){}
+        });
+        // Center + zoom on the vessel marker
+        var match = null;
+        Object.keys(svFleetMarkers).forEach(function(key){
+            if(String(svFleetMarkers[key]._imo||'') === imo) match = svFleetMarkers[key];
+        });
+        if(match){
+            var ll = match.getLatLng();
+            map.setView([ll.lat, ll.lng], 8);
+            match.openPopup();
+        } else {
+            // Vessel not in sv_snapshot — show static info popup at last-known port instead.
+            var msg = '⚠️ ' + (v.name||code) + ' 의 실시간 위치 데이터 없음\n(SeaVantage workspace 미등록 또는 AIS 데이터 부재)';
+            console.warn('[focusVessel]', msg);
+        }
+        // Draw past track for this vessel only (own only — SeaVantage permission)
+        drawShipPastTrack(imo, '#dc2626');
+        // Show side panel with vessel data
+        showVesselSidePanel(svc, v);
+    });
+}
+function showVesselSidePanel(svc, v){
+    // Reuse the route panel (.rpanel) styled for a single vessel.
+    var ro = ROUTES[svc] || {};
+    var si = (SVC_INFO || []).find(function(x){return x.svc===svc;}) || {};
+    var col = (RC && RC[ro.region||si.region]) || '#dc2626';
+    var rp = document.getElementById('rpanel');
+    if(!rp) return;
+    document.getElementById('rptitle').innerHTML =
+        '<span style="color:'+col+'">'+v.name+'</span> '+
+        '<span style="font-size:10px;background:#fee2e2;color:#991b1b;padding:1px 6px;border-radius:10px;margin-left:6px">자사선</span>';
+    document.getElementById('rpmeta').innerHTML =
+        '<div style="font-size:11px;color:var(--muted)">Service: <b>'+svc+'</b>'+
+        (ro.name?' · '+ro.name:'')+'</div>';
+    function row(label, val){
+        if(!val) return '';
+        return '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f1f5f9;font-size:12px">'+
+               '<span style="color:#64748b">'+label+'</span><b>'+val+'</b></div>';
+    }
+    document.getElementById('rpbody').innerHTML =
+        row('Code', v.code) +
+        row('IMO', v.imo) +
+        row('Call sign', v.call) +
+        row('Type', v.type) +
+        row('Flag', v.flag) +
+        row('Built', v.built) +
+        row('GT', v.gt?v.gt.toLocaleString()+' T':'') +
+        row('DWT', v.dwt?v.dwt.toLocaleString()+' T':'') +
+        row('TEU', v.teu?v.teu.toLocaleString()+' TEU':'') +
+        row('LOA', v.loa?v.loa+' m':'') +
+        '<div style="margin-top:10px;font-size:11px;color:#64748b">📍 빨간 점선 = 지난 항해 트랙 (sv_pasttrack)</div>' +
+        '<button onclick="closeRP()" style="margin-top:10px;width:100%;padding:8px;background:#f1f5f9;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600">← 전체 선박 보기</button>';
+    rp.style.display='flex';
+}
 var svFleetMarkers={};   // shipId -> L.marker
 var svFleetTimer=null;   // setInterval handle for periodic refresh
 // ── ONE-CLICK FLEET SYNC ─────────────────────────────────────────────────────
@@ -2681,8 +2821,14 @@ function autoLoadSvFleet(){
                 svFleetLayer.addLayer(mk);
                 svFleetMarkers[key]=mk;
             }
-            // If a route filter is active, apply it to brand-new markers too.
-            if(window._activeRouteSvc){
+            // Cache shipId↔IMO for sv_pasttrack lookups.
+            if(v.imo && v.shipId){
+                window._imoToShipId.set(String(v.imo).trim(), v.shipId);
+            }
+            // Apply current selection mode (solo or route filter) to new markers
+            if(window._soloVesselImo){
+                try{svFleetMarkers[key].setOpacity(String(v.imo||'')===window._soloVesselImo?1:0.05);}catch(_){}
+            } else if(window._activeRouteSvc){
                 var allow=(window._svcImoMap||new Map()).get(window._activeRouteSvc)||new Set();
                 try{svFleetMarkers[key].setOpacity(allow.has(String(v.imo||''))?1:0.06);}catch(_){}
             }
@@ -3200,9 +3346,9 @@ function showMapDiag(){
 }
 </script>
 <nav class="mob-nav" id="mobNav" style="display:none">
-  <button class="mob-nav-btn active" id="mn_port" onclick="mobTab('port')"><span class="mnicon">🚢</span>Port</button>
-  <button class="mob-nav-btn" id="mn_service" onclick="mobTab('service')"><span class="mnicon">🌐</span>Routes</button>
+  <button class="mob-nav-btn active" id="mn_service" onclick="mobTab('service')"><span class="mnicon">🌐</span>Service</button>
   <button class="mob-nav-btn" id="mn_vessel" onclick="mobTab('vessel')"><span class="mnicon">⚓</span>Vessels</button>
+  <button class="mob-nav-btn" id="mn_port" onclick="mobTab('port')"><span class="mnicon">🚢</span>Port</button>
   <button class="mob-nav-btn" id="mn_update" onclick="mobTab('update')"><span class="mnicon">✏️</span>Input</button>
   <button class="mob-nav-btn" id="mn_map" onclick="mobTab('map')"><span class="mnicon">🗺️</span>Map</button>
 </nav>

@@ -223,6 +223,27 @@ Don't pile session diaries into this file — it should stay evergreen. For per-
 
 ## 10. Recent work log (append-only, newest first)
 
+### 2026-05-29 — Service-first UX + past tracks + solo vessel focus
+Four coordinated changes:
+
+**1. Tab rename + reorder**: `Routes` → `Service`. Service is now the default landing tab (was Port). Mobile nav reordered: Service / Vessels / Port / Input / Map. Default `tab='service'` in state.
+
+**2. Past-track polylines** (`pastTrackLayer`):
+- New `drawShipPastTrack(imo, color)` — looks up shipId via `window._imoToShipId` Map (populated by `autoLoadSvFleet`) then calls `sv_pasttrack` → polyline with dashed red line (own-fleet color).
+- `drawServicePastTracks(svcId)` — iterates own vessels on the service, draws all their tracks.
+- Wired into `_drawRoute()` so every Service click shows the past-tracks of own-fleet ships operating it.
+- Silent on 403 (sv_pasttrack permission still pending in SeaVantage scope).
+
+**3. Solo vessel focus** (`focusVessel(svc, code)`):
+- Replaces the modal-style `showVesselModal` for vessel-card clicks.
+- Behavior: clears prior route/track state → dims all other markers (opacity 0.05) → centers map on this vessel's SeaVantage marker → opens popup → draws past-track (dashed red) → opens a side panel (`.rpanel` reused) with vessel data + "← 전체 선박 보기" button.
+- `window._soloVesselImo` tracks solo mode so `autoLoadSvFleet` 5-min refresh doesn't undo the dim filter.
+- `closeRP()` clears solo mode + past tracks.
+
+**4. shipId↔IMO cache** (`window._imoToShipId` Map):
+- Built incrementally by `autoLoadSvFleet` whenever a new ship appears in sv_snapshot.
+- Required because `sv_pasttrack` takes a shipId UUID, not an IMO.
+
 ### 2026-05-29 — Color recolor + "(no name)" fix via IMO→name lookup
 **Recolor**: per user request, own ships now RED (`#dc2626`) and other-carriers YELLOW (`#facc15`) — was green/sky-blue.
 
