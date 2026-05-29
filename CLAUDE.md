@@ -223,6 +223,26 @@ Don't pile session diaries into this file — it should stay evergreen. For per-
 
 ## 10. Recent work log (append-only, newest first)
 
+### 2026-05-29 — Color recolor + "(no name)" fix via IMO→name lookup
+**Recolor**: per user request, own ships now RED (`#dc2626`) and other-carriers YELLOW (`#facc15`) — was green/sky-blue.
+
+**"(no name)" fix**: `sv_snapshot` often returns `position.shipName=null` for newly bulk-registered vessels (SeaVantage hasn't yet matched AIS static data). Two bugs found:
+
+1. `svFlattenEntry()` was reading `name` from `ship` root, but for `sv_snapshot` the name lives inside `position`. Also `imo`, `mmsi`, `dest`, `pta`, `aisDestination` — all of those.
+2. Even with the path fix, ~60% of names still came back null because SeaVantage hadn't decoded the AIS static frame yet.
+
+Solution: built `window._imoToName` + `window._imoToCode` maps from local data (VESSELS + sched-non-own.json) — 541 IMOs covered. `svFlattenEntry()` falls back to lookup when SeaVantage gives null:
+
+```js
+var name = svProbe(pos,['shipName','name','vesselName']) ||
+           svProbe(ship,['shipName','name','vesselName']) ||
+           _lookupNameByImo(imo);
+```
+
+Popup also shows the local vessel code (e.g. `AKTR`) as a chip next to SeaVantage ID, so users can correlate with internal data.
+
+**Maps rebuilt** whenever `loadSvBulkList()` resolves (so freshly-loaded charter data immediately becomes available to the lookup).
+
 ### 2026-05-29 — Fleet UX: own/charter distinction + route filter + marker depth
 Three coordinated changes after user feedback that ship markers were "겹치고" (overlapping) terminals and all looked alike.
 

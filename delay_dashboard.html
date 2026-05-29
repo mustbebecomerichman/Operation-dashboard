@@ -477,7 +477,7 @@ var DEFAULT_APPS_SCRIPT_URL = '';
 var CONFIG = {
     appsScriptUrl: localStorage.getItem('pd_surl') || DEFAULT_APPS_SCRIPT_URL || '',
     adminEmail: 'smmoon@heungaline.com',
-    version: '1.4.27',
+    version: '1.4.28',
     updateUrl: 'https://mustbebecomerichman.github.io/Operation-dashboard/delay_dashboard.html',  // GitHub Pages — auto-update source
     aisApiKey: '',  // aisstream.io API key — set per-device via Admin Panel (stored in localStorage)
     aisProvider: 'aisstream',  // 'aisstream' | 'datalastic' | 'marinetraffic' | 'vesselfinder'
@@ -1921,8 +1921,10 @@ function getSvcColor(svcId){
 // green (#16a34a) for own.
 function makeShipIcon(heading, color, kind){
     var h=(!heading||heading>359)?0:heading;
-    var fill=color||(kind==='own'?'#16a34a':'#0284c7');
-    var stroke=(kind==='own')?'#fff':'#0b3a52';
+    // Own  = RED  (#dc2626) with white stroke   — our company ships
+    // Other = YELLOW (#facc15) with dark stroke  — other carriers
+    var fill=color||(kind==='own'?'#dc2626':'#facc15');
+    var stroke=(kind==='own')?'#fff':'#7c2d12';
     var size=(kind==='own')?32:24;  // own ships slightly larger so they stand out
     return window.L.divIcon({
         html:'<div style="width:'+size+'px;height:'+size+'px;transform:rotate('+h+'deg);filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))">'
@@ -2713,23 +2715,72 @@ function svProbe(obj,names){
     }
     return undefined;
 }
+// IMO → vessel name lookup table built from our local data.
+// Many sv_snapshot entries return name=null inside `position`, so we have to
+// fall back to our own VESSELS / sched-non-own.json which have IMO+name for
+// every vessel we care about (737 vessels covered).
+window._imoToName=null;
+window._imoToCode=null;
+function _buildImoNameMap(){
+    var name=new Map(), code=new Map();
+    Object.values(VESSELS||{}).forEach(function(arr){
+        (arr||[]).forEach(function(v){
+            var imo=String(v.imo||'').trim();
+            if(!/^\d{7}$/.test(imo)) return;
+            if(v.name) name.set(imo, v.name);
+            if(v.code) code.set(imo, v.code);
+        });
+    });
+    if(svBulkList){
+        svBulkList.forEach(function(v){
+            var imo=String(v.imo||'').trim();
+            if(!/^\d{7}$/.test(imo)) return;
+            if(v.name && !name.has(imo)) name.set(imo, v.name);
+            if(v.code && !code.has(imo)) code.set(imo, v.code);
+        });
+    }
+    window._imoToName=name;
+    window._imoToCode=code;
+}
+function _lookupNameByImo(imo){
+    if(!window._imoToName) _buildImoNameMap();
+    return window._imoToName.get(String(imo||'').trim()) || '';
+}
+function _lookupCodeByImo(imo){
+    if(!window._imoToCode) _buildImoNameMap();
+    return window._imoToCode.get(String(imo||'').trim()) || '';
+}
 // Defensive flattener — works whether the entry has the /fleet/info shape ({ship:{...}, categoryIds:[]})
 // or the /fleet/snapshot shape ({shipId, position:{...}}). Field names are probed because the
 // exact OpenAPI schema for PositionResponse / ShipExternalWithSVinfoResponse isn't fully published.
 function svFlattenEntry(entry){
     var ship=entry.ship||entry;
     var pos=ship.position||entry.position||{};
+    // For sv_snapshot, name/IMO live INSIDE position. For sv_info they're at
+    // the ship root. Check both, then fall back to our own IMO→name lookup
+    // (kills 99% of "(no name)" popups since we have name records for all our
+    // own + scheduled charter vessels).
+    var imo = svProbe(pos,['imoNo','imo']) ||
+              svProbe(ship,['imoNo','imo']);
+    var name = svProbe(pos,['shipName','name','vesselName']) ||
+               svProbe(ship,['shipName','name','vesselName']) ||
+               _lookupNameByImo(imo);
     return {
         shipId:    svProbe(entry,['shipId'])||svProbe(ship,['shipId','id']),
-        name:      svProbe(ship,['shipName','name','vesselName']),
-        imo:       svProbe(ship,['imoNo','imo']),
-        mmsi:      svProbe(ship,['mmsi']),
+        name:      name,
+        code:      _lookupCodeByImo(imo),  // vessel code from our data (e.g. AKTR)
+        imo:       imo,
+        mmsi:      svProbe(pos,['mmsi'])||svProbe(ship,['mmsi']),
         lat:       Number(svProbe(pos,['lat','latitude'])),
         lng:       Number(svProbe(pos,['lon','lng','longitude'])),
         heading:   svProbe(pos,['heading','hdg','course']),
         speed:     svProbe(pos,['speed','sog']),
-        dest:      svProbe(ship,['destination','dest','destinationName'])||svProbe(entry,['destination','dest']),
-        pta:       svProbe(ship,['pta','eta','predictedTimeOfArrival'])||svProbe(entry,['pta','eta']),
+        dest:      svProbe(pos,['destination','dest','destinationName','aisDestination'])||
+                   svProbe(ship,['destination','dest','destinationName'])||
+                   svProbe(entry,['destination','dest']),
+        pta:       svProbe(pos,['pta','eta','predictedTimeOfArrival'])||
+                   svProbe(ship,['pta','eta','predictedTimeOfArrival'])||
+                   svProbe(entry,['pta','eta']),
         updatedAt: svProbe(pos,['timestamp','posTime','updatedAt'])
     };
 }
@@ -2742,17 +2793,20 @@ function buildSvPopup(v){
     if(v.dest)                      rows+='<tr><td style="color:#64748b;padding-right:10px">Destination</td><td>'+v.dest+'</td></tr>';
     if(v.pta)                       rows+='<tr><td style="color:#64748b;padding-right:10px">PTA</td><td>'+v.pta+'</td></tr>';
     var upd=v.updatedAt?'<div style="font-size:10px;color:#94a3b8;margin-top:6px;border-top:1px solid #f1f5f9;padding-top:4px">'+v.updatedAt+'</div>':'';
-    // Optional 2nd arg: 'own' | 'charter' — drives the popup title color + badge
+    // Optional 2nd arg: 'own' | 'charter' — drives the popup title color + badge.
+    // Colors mirror map icons: own=RED (#dc2626), charter=YELLOW-amber (#d97706 readable on white)
     var kind=arguments[1];
-    var titleColor=kind==='own'?'#16a34a':'#0284c7';
+    var titleColor=kind==='own'?'#dc2626':kind==='charter'?'#b45309':'#1e40af';
     var badge=kind==='own'
-        ? '<span style="display:inline-block;font-size:9px;background:#dcfce7;color:#15803d;padding:1px 6px;border-radius:8px;margin-left:6px;font-weight:600">자사선</span>'
+        ? '<span style="display:inline-block;font-size:9px;background:#fee2e2;color:#991b1b;padding:1px 6px;border-radius:8px;margin-left:6px;font-weight:600">자사선</span>'
         : kind==='charter'
-        ? '<span style="display:inline-block;font-size:9px;background:#dbeafe;color:#1e40af;padding:1px 6px;border-radius:8px;margin-left:6px;font-weight:600">용선</span>'
+        ? '<span style="display:inline-block;font-size:9px;background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:8px;margin-left:6px;font-weight:600">타사선</span>'
         : '';
+    // Show vessel code (e.g. AKTR) next to ID when we have it from our local data.
+    var codeChip = v.code ? '<span style="font-family:ui-monospace,monospace;color:#475569;background:#f1f5f9;padding:1px 5px;border-radius:4px;margin-right:6px;font-size:11px">'+v.code+'</span>' : '';
     return '<div style="min-width:200px;font-family:sans-serif">'
-        +'<div style="font-weight:700;font-size:14px;color:'+titleColor+'">'+(v.name||'(no name)')+badge+'</div>'
-        +'<div style="font-size:11px;color:#64748b;margin-bottom:6px">SeaVantage · '+(v.shipId||'').slice(0,8)+'</div>'
+        +'<div style="font-weight:700;font-size:14px;color:'+titleColor+'">'+(v.name||'(unknown)')+badge+'</div>'
+        +'<div style="font-size:11px;color:#64748b;margin-bottom:6px">'+codeChip+'SeaVantage · '+(v.shipId||'').slice(0,8)+'</div>'
         +(rows?'<table style="font-size:12px;border-collapse:collapse">'+rows+'</table>':'')
         +upd+'</div>';
 }
@@ -2856,8 +2910,9 @@ function loadSvBulkList(){
         if(cntEl) cntEl.textContent=arr.length;
         var lblEl=document.getElementById('svBulkBtnLabel');
         if(lblEl) lblEl.textContent='Register '+arr.length+' vessels';
-        // Rebuild svc→IMO map now that charter assignments are known.
+        // Rebuild svc→IMO map and IMO→name map now that charter list is known.
         _buildSvcImoMap();
+        _buildImoNameMap();
         return arr;
     });
 }
