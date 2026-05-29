@@ -477,7 +477,7 @@ var DEFAULT_APPS_SCRIPT_URL = '';
 var CONFIG = {
     appsScriptUrl: localStorage.getItem('pd_surl') || DEFAULT_APPS_SCRIPT_URL || '',
     adminEmail: 'smmoon@heungaline.com',
-    version: '1.4.26',
+    version: '1.4.27',
     updateUrl: 'https://mustbebecomerichman.github.io/Operation-dashboard/delay_dashboard.html',  // GitHub Pages — auto-update source
     aisApiKey: '',  // aisstream.io API key — set per-device via Admin Panel (stored in localStorage)
     aisProvider: 'aisstream',  // 'aisstream' | 'datalastic' | 'marinetraffic' | 'vesselfinder'
@@ -1561,6 +1561,9 @@ function _drawRoute(svcId){
     if(routeLayer){map.removeLayer(routeLayer);routeLayer=null;}
     var si=SVC_INFO.find(function(s){return s.svc===svcId;})||{};
     var col=RC[route.region||si.region]||'#1e40af';
+    // Hide fleet markers that don't operate on this service — focuses attention
+    // on the relevant ships. Restored when closeRP() runs.
+    filterSvFleetByService(svcId);
 
     // Priority order for the polyline points (highest wins):
     //   1. route.coords[] when len ≠ ports.length — HAND-TUNED dense path
@@ -1912,14 +1915,84 @@ function getSvcColor(svcId){
 }
 
 // Helper: ship SVG icon
-function makeShipIcon(heading, color){
+// `kind` is 'own' (자사선) | 'charter' (용선) — used to decide stroke color so
+// the two are visually distinct on the map. The fill `color` is reserved for
+// status / per-route highlighting; default = blue (#0284c7) for charter,
+// green (#16a34a) for own.
+function makeShipIcon(heading, color, kind){
     var h=(!heading||heading>359)?0:heading;
+    var fill=color||(kind==='own'?'#16a34a':'#0284c7');
+    var stroke=(kind==='own')?'#fff':'#0b3a52';
+    var size=(kind==='own')?32:24;  // own ships slightly larger so they stand out
     return window.L.divIcon({
-        html:'<div style="width:28px;height:28px;transform:rotate('+h+'deg)">'
+        html:'<div style="width:'+size+'px;height:'+size+'px;transform:rotate('+h+'deg);filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))">'
             +'<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">'
-            +'<polygon points="12,2 20,20 12,16 4,20" fill="'+color+'" stroke="#fff" stroke-width="1.5" opacity="0.95"/>'
+            +'<polygon points="12,2 20,20 12,16 4,20" fill="'+fill+'" stroke="'+stroke+'" stroke-width="1.8" opacity="0.95"/>'
             +'</svg></div>',
-        iconSize:[28,28], iconAnchor:[14,14], className:''
+        iconSize:[size,size], iconAnchor:[size/2,size/2], className:'sv-ship-icon'
+    });
+}
+// IMO sets — built once from VESSELS (own) + sched-non-own.json (charter).
+// Used for two things:
+//   1. Coloring ships green (own) vs sky-blue (charter)
+//   2. Filtering visible ships when a service/route is selected
+window._ownImos=null;        // Set<string>
+window._svcImoMap=null;      // Map<svc, Set<imo>>
+window._activeRouteSvc=null; // string|null — currently filtered service
+function _buildOwnImoSet(){
+    var s=new Set();
+    Object.values(VESSELS||{}).forEach(function(arr){
+        (arr||[]).forEach(function(v){
+            var imo=String(v.imo||'').trim();
+            if(/^\d{7}$/.test(imo)) s.add(imo);
+        });
+    });
+    window._ownImos=s;
+}
+function _buildSvcImoMap(){
+    var m=new Map();
+    Object.keys(VESSELS||{}).forEach(function(svc){
+        (VESSELS[svc]||[]).forEach(function(v){
+            var imo=String(v.imo||'').trim();
+            if(!/^\d{7}$/.test(imo)) return;
+            if(!m.has(svc)) m.set(svc,new Set());
+            m.get(svc).add(imo);
+        });
+    });
+    // Add charter assignments from the pre-loaded bulk list (if cached)
+    if(svBulkList){
+        svBulkList.forEach(function(v){
+            (v.services||[]).forEach(function(svc){
+                var imo=String(v.imo||'').trim();
+                if(!/^\d{7}$/.test(imo)) return;
+                if(!m.has(svc)) m.set(svc,new Set());
+                m.get(svc).add(imo);
+            });
+        });
+    }
+    window._svcImoMap=m;
+}
+function svShipKind(imo){
+    if(!window._ownImos) _buildOwnImoSet();
+    return window._ownImos.has(String(imo||'').trim())?'own':'charter';
+}
+// Hide/dim fleet markers not assigned to the given service. Called from showRoute.
+function filterSvFleetByService(svc){
+    window._activeRouteSvc=svc;
+    if(!window._svcImoMap) _buildSvcImoMap();
+    var allow=window._svcImoMap.get(svc)||new Set();
+    Object.keys(svFleetMarkers).forEach(function(key){
+        var mk=svFleetMarkers[key];
+        var imo=String(mk._imo||'');
+        var on=allow.has(imo);
+        // setOpacity works on both standard and divIcon markers in Leaflet.
+        try{mk.setOpacity(on?1:0.06);}catch(_){}
+    });
+}
+function unfilterSvFleet(){
+    window._activeRouteSvc=null;
+    Object.keys(svFleetMarkers).forEach(function(key){
+        try{svFleetMarkers[key].setOpacity(1);}catch(_){}
     });
 }
 
@@ -2119,6 +2192,7 @@ function closeRP(){
     document.getElementById('rpanel').style.display='none';
     if(routeLayer){map.removeLayer(routeLayer);routeLayer=null;}
     clearAisMarkers();
+    unfilterSvFleet();  // restore all fleet markers to full opacity
 }
 
 // ?? ADMIN ????????????????????????????????????????????????????
@@ -2580,6 +2654,8 @@ function autoLoadSvFleet(){
     if(!CONFIG.seavantageProxyUrl || !CONFIG.seavantageToken) return;
     if(!window.map) return;  // map not ready yet — next tick will pick it up
     ensureSvLayer();
+    // Make sure the own-IMO set is ready before we color markers.
+    if(!window._ownImos) _buildOwnImoSet();
     callSV('sv_snapshot').then(function(data){
         var list=Array.isArray(data)?data:(data&&data.response)||[];
         if(!list.length) return;
@@ -2588,15 +2664,25 @@ function autoLoadSvFleet(){
             var v=svFlattenEntry(entry);
             if(!v.lat||!v.lng||isNaN(v.lat)||isNaN(v.lng)) return;
             placed++;
-            var icon=makeShipIcon(Number(v.heading)||0,'#16a34a');
-            var html=buildSvPopup(v);
+            var kind=svShipKind(v.imo);
+            var icon=makeShipIcon(Number(v.heading)||0,null,kind);
+            var html=buildSvPopup(v,kind);
             var key=v.shipId||('idx'+placed);
             if(svFleetMarkers[key]){
                 svFleetMarkers[key].setLatLng([v.lat,v.lng]).setIcon(icon).setPopupContent(html);
             } else {
-                var mk=window.L.marker([v.lat,v.lng],{icon:icon}).bindPopup(html);
+                // Higher zIndexOffset so ships render above port circles even at
+                // low zoom (terminals use the default circleMarker pane).
+                var mk=window.L.marker([v.lat,v.lng],{icon:icon,zIndexOffset:1000}).bindPopup(html);
+                mk._imo=String(v.imo||'');
+                mk._kind=kind;
                 svFleetLayer.addLayer(mk);
                 svFleetMarkers[key]=mk;
+            }
+            // If a route filter is active, apply it to brand-new markers too.
+            if(window._activeRouteSvc){
+                var allow=(window._svcImoMap||new Map()).get(window._activeRouteSvc)||new Set();
+                try{svFleetMarkers[key].setOpacity(allow.has(String(v.imo||''))?1:0.06);}catch(_){}
             }
         });
         // Surface the count in the Admin Panel status area when present.
@@ -2656,8 +2742,16 @@ function buildSvPopup(v){
     if(v.dest)                      rows+='<tr><td style="color:#64748b;padding-right:10px">Destination</td><td>'+v.dest+'</td></tr>';
     if(v.pta)                       rows+='<tr><td style="color:#64748b;padding-right:10px">PTA</td><td>'+v.pta+'</td></tr>';
     var upd=v.updatedAt?'<div style="font-size:10px;color:#94a3b8;margin-top:6px;border-top:1px solid #f1f5f9;padding-top:4px">'+v.updatedAt+'</div>':'';
+    // Optional 2nd arg: 'own' | 'charter' — drives the popup title color + badge
+    var kind=arguments[1];
+    var titleColor=kind==='own'?'#16a34a':'#0284c7';
+    var badge=kind==='own'
+        ? '<span style="display:inline-block;font-size:9px;background:#dcfce7;color:#15803d;padding:1px 6px;border-radius:8px;margin-left:6px;font-weight:600">자사선</span>'
+        : kind==='charter'
+        ? '<span style="display:inline-block;font-size:9px;background:#dbeafe;color:#1e40af;padding:1px 6px;border-radius:8px;margin-left:6px;font-weight:600">용선</span>'
+        : '';
     return '<div style="min-width:200px;font-family:sans-serif">'
-        +'<div style="font-weight:700;font-size:14px;color:#16a34a">'+(v.name||'(no name)')+'</div>'
+        +'<div style="font-weight:700;font-size:14px;color:'+titleColor+'">'+(v.name||'(no name)')+badge+'</div>'
         +'<div style="font-size:11px;color:#64748b;margin-bottom:6px">SeaVantage · '+(v.shipId||'').slice(0,8)+'</div>'
         +(rows?'<table style="font-size:12px;border-collapse:collapse">'+rows+'</table>':'')
         +upd+'</div>';
@@ -2672,6 +2766,7 @@ function loadSvFleetToMap(){
     if(out){out.style.display='block'; out.textContent='GET sv_snapshot …';}
     ensureSvLayer();
     var t0=Date.now();
+    if(!window._ownImos) _buildOwnImoSet();
     callSV('sv_snapshot').then(function(data){
         var list=Array.isArray(data)?data:(data&&data.response)||[];
         var placed=0, skipped=0, samples=[];
@@ -2680,13 +2775,15 @@ function loadSvFleetToMap(){
             if(samples.length<3) samples.push(v);
             if(!v.lat||!v.lng||isNaN(v.lat)||isNaN(v.lng)){skipped++; return;}
             placed++;
-            var icon=makeShipIcon(Number(v.heading)||0,'#16a34a'); // green
-            var html=buildSvPopup(v);
+            var kind=svShipKind(v.imo);
+            var icon=makeShipIcon(Number(v.heading)||0,null,kind);
+            var html=buildSvPopup(v,kind);
             var key=v.shipId||('idx'+placed);
             if(svFleetMarkers[key]){
                 svFleetMarkers[key].setLatLng([v.lat,v.lng]).setIcon(icon).setPopupContent(html);
             } else {
-                var mk=window.L.marker([v.lat,v.lng],{icon:icon}).bindPopup(html);
+                var mk=window.L.marker([v.lat,v.lng],{icon:icon,zIndexOffset:1000}).bindPopup(html);
+                mk._imo=String(v.imo||''); mk._kind=kind;
                 svFleetLayer.addLayer(mk);
                 svFleetMarkers[key]=mk;
             }
@@ -2759,6 +2856,8 @@ function loadSvBulkList(){
         if(cntEl) cntEl.textContent=arr.length;
         var lblEl=document.getElementById('svBulkBtnLabel');
         if(lblEl) lblEl.textContent='Register '+arr.length+' vessels';
+        // Rebuild svc→IMO map now that charter assignments are known.
+        _buildSvcImoMap();
         return arr;
     });
 }

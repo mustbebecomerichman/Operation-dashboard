@@ -223,6 +223,31 @@ Don't pile session diaries into this file — it should stay evergreen. For per-
 
 ## 10. Recent work log (append-only, newest first)
 
+### 2026-05-29 — Fleet UX: own/charter distinction + route filter + marker depth
+Three coordinated changes after user feedback that ship markers were "겹치고" (overlapping) terminals and all looked alike.
+
+**1. Visual differentiation — own (사선) vs charter (용선)**
+- New IMO set `window._ownImos` built once from `VESSELS` at startup.
+- `svShipKind(imo)` returns `'own'` or `'charter'`.
+- `makeShipIcon(heading, color, kind)`:
+  - `kind='own'` → 32px green (`#16a34a`) arrow, white stroke
+  - `kind='charter'` → 24px sky-blue (`#0284c7`) arrow, dark navy stroke
+  - Added `filter:drop-shadow(...)` so ships float above the port circles
+- `buildSvPopup(v, kind)` now shows a `자사선`/`용선` chip in the title row.
+
+**2. z-index layering — ships always above terminals**
+- All ship markers created with `zIndexOffset:1000` (terminals use default ~600).
+- Even at low zoom, port circles never cover up a fleet marker.
+
+**3. Route filter — show only the vessels operating that service**
+- `_buildSvcImoMap()` constructs `Map<svc, Set<imo>>` from both `VESSELS` and `data/sched-non-own.json`.
+- `filterSvFleetByService(svcId)` sets `opacity:0.06` for markers not in the service's IMO set, `opacity:1` for matches. Markers stash their IMO+kind on the L.Marker instance (`mk._imo`, `mk._kind`).
+- Called from `_drawRoute(svcId)` after the polyline draws.
+- `unfilterSvFleet()` restores everyone — called from `closeRP()` so dismissing the route panel brings the full fleet back.
+- New markers added while a route is active inherit the current filter (auto-load timer doesn't break filter state).
+
+Net behavior: open the dashboard → all ~599 ships visible (green=own, blue=charter). Click a service in Routes tab → only that service's ships stay opaque; the rest fade to nearly transparent. Close the route panel → all ships full-opacity again.
+
 ### 2026-05-29 — One-click fleet sync from header pill (simplification)
 **User report**: "복잡하다. 내 프로그램에 등록된 선박 위치를 보고싶다."
 
