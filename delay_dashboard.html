@@ -418,6 +418,11 @@ body{font-family:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;backg
 <div class="hdr">
  <div class="hdr-title">Operation Dashboard</div>
  <div class="hdr-right">
+  <!-- One-click fleet status pill. Auto-evaluates current SeaVantage workspace
+       coverage vs the dashboard's vessel list. Clicking does the right thing
+       depending on state: open Admin if unconfigured, register-and-show if
+       coverage gap, refresh positions if fully synced. -->
+  <div class="hdr-pill" id="svFleetStatus" onclick="onSvFleetStatusClick()" style="display:none;cursor:pointer;background:rgba(255,255,255,.18);color:#fff;padding:5px 12px;border-radius:14px;font-size:12px;font-weight:600;letter-spacing:.2px;user-select:none">⏳</div>
   <div class="live-pill"><div class="live-dot" id="ldot"></div><span id="lstat">Offline</span></div>
   <div class="hdr-btn" id="uinfo" style="cursor:default"></div>
   <button class="hdr-btn" id="adminBtn" style="display:none" onclick="showAdmin()">⚙️ Admin</button>
@@ -472,7 +477,7 @@ var DEFAULT_APPS_SCRIPT_URL = '';
 var CONFIG = {
     appsScriptUrl: localStorage.getItem('pd_surl') || DEFAULT_APPS_SCRIPT_URL || '',
     adminEmail: 'smmoon@heungaline.com',
-    version: '1.4.25',
+    version: '1.4.26',
     updateUrl: 'https://mustbebecomerichman.github.io/Operation-dashboard/delay_dashboard.html',  // GitHub Pages — auto-update source
     aisApiKey: '',  // aisstream.io API key — set per-device via Admin Panel (stored in localStorage)
     aisProvider: 'aisstream',  // 'aisstream' | 'datalastic' | 'marinetraffic' | 'vesselfinder'
@@ -659,8 +664,10 @@ function showApp(){
     // Refreshes every 5 minutes to keep AIS positions current. Silently no-ops
     // when proxy isn't configured yet (first-time setup).
     autoLoadSvFleet();
+    // Header status pill: shows coverage at a glance + one-click register-all.
+    setTimeout(refreshSvFleetStatus, 500);
     if(svFleetTimer){clearInterval(svFleetTimer);}
-    svFleetTimer=setInterval(autoLoadSvFleet, 5*60*1000);
+    svFleetTimer=setInterval(function(){autoLoadSvFleet(); refreshSvFleetStatus();}, 5*60*1000);
     if(CONFIG.appsScriptUrl){
         rtimer=setInterval(function(){fetchLive();updateKPI();if(tab==='port')updatePortCards();},CONFIG.refreshMs);
     }
@@ -2441,6 +2448,130 @@ function callSV(action,params,opts){
 var svFleetLayer=null;
 var svFleetMarkers={};   // shipId -> L.marker
 var svFleetTimer=null;   // setInterval handle for periodic refresh
+// ── ONE-CLICK FLEET SYNC ─────────────────────────────────────────────────────
+// Header status pill shows current state at a glance.
+//   STATE A — proxy not configured       → "⚙️ SeaVantage 설정 필요" → opens Admin
+//   STATE B — synced (≥90% of target)    → "🛰️ N척 추적 중"        → refresh-only
+//   STATE C — coverage gap               → "🚢 R / T척 · 일괄 등록 (~Nm)" → syncAllFleet
+function refreshSvFleetStatus(){
+    var el=document.getElementById('svFleetStatus');
+    if(!el) return;
+    el.style.display='inline-block';
+    function setState(html,bg,handler){
+        el.innerHTML=html;
+        el.style.background=bg;
+        el._click=handler;
+    }
+    if(!CONFIG.seavantageProxyUrl||!CONFIG.seavantageToken){
+        setState('⚙️ SeaVantage 설정','rgba(245,158,11,.85)',function(){showAdmin();});
+        return;
+    }
+    setState('⏳ 확인 중…','rgba(255,255,255,.18)',null);
+    // Build target IMO set: own VESSELS + charter list
+    var targetImos=new Set();
+    Object.values(VESSELS).forEach(function(svc){
+        svc.forEach(function(v){
+            var imo=String(v.imo||'').trim();
+            if(/^\d{7}$/.test(imo)) targetImos.add(imo);
+        });
+    });
+    loadSvBulkList().then(function(charter){
+        charter.forEach(function(v){
+            var imo=String(v.imo||'').trim();
+            if(/^\d{7}$/.test(imo)) targetImos.add(imo);
+        });
+        return callSV('sv_snapshot').then(function(data){
+            var arr=Array.isArray(data)?data:(data&&data.response)||[];
+            var registered=new Set();
+            arr.forEach(function(s){
+                var imo=(s.position||{}).imoNo;
+                if(imo) registered.add(String(imo));
+            });
+            var target=targetImos.size;
+            var have=arr.length;
+            // Missing = target IMOs that aren't currently in the workspace.
+            var missing=[];
+            targetImos.forEach(function(imo){if(!registered.has(imo)) missing.push(imo);});
+            if(missing.length<=Math.max(5,target*0.05)){
+                // Effectively synced (allow a few unmatchable IMOs)
+                setState('🛰️ '+have+'척 추적 중','rgba(16,185,129,.85)',function(){
+                    autoLoadSvFleet();
+                    refreshSvFleetStatus();
+                });
+            } else {
+                var mins=Math.ceil(missing.length*0.35/60);
+                setState('🚢 '+have+' / '+target+'척 · 탭하여 일괄 등록 (~'+mins+'분)','rgba(124,58,237,.85)',function(){
+                    syncAllFleet(missing);
+                });
+            }
+        });
+    }).catch(function(err){
+        setState('⚠️ 연결 실패','rgba(239,68,68,.85)',function(){showAdmin();});
+        console.warn('[refreshSvFleetStatus]',err.message);
+    });
+}
+function onSvFleetStatusClick(){
+    var el=document.getElementById('svFleetStatus');
+    if(el && typeof el._click==='function') el._click();
+}
+// Resolves missing IMOs to shipIds (Phase 1), then batch-registers them
+// (Phase 2), then refreshes positions (Phase 3). Progress shown inline in
+// the header pill. ~3 min for 528 vessels.
+function syncAllFleet(missingImos){
+    if(!Array.isArray(missingImos)||!missingImos.length){
+        refreshSvFleetStatus();
+        return;
+    }
+    if(!confirm(missingImos.length+'척을 SeaVantage 워크스페이스에 등록합니다.\n약 '+Math.ceil(missingImos.length*0.35/60)+'분 소요됩니다.\n\n진행하시겠습니까?')) return;
+    var el=document.getElementById('svFleetStatus');
+    var setPill=function(text,bg){if(el){el.innerHTML=text; if(bg) el.style.background=bg;}};
+    setPill('🔍 0 / '+missingImos.length+' 검색 중…','rgba(59,130,246,.9)');
+    var resolved=[], lookFail=[];
+    var lookDone=0;
+    var chain=Promise.resolve();
+    missingImos.forEach(function(imo){
+        chain=chain.then(function(){
+            return callSV('sv_search',{keyword:imo}).then(function(data){
+                var arr=Array.isArray(data)?data:(data&&data.response)||[];
+                var match=arr.find(function(s){return String(s.imoNo||'')===imo;})||arr[0];
+                if(match&&match.shipId) resolved.push(match.shipId);
+                else lookFail.push(imo);
+            }).catch(function(){lookFail.push(imo);}).then(function(){
+                lookDone++;
+                if(lookDone%5===0||lookDone===missingImos.length){
+                    setPill('🔍 '+lookDone+' / '+missingImos.length+' 검색 중…');
+                }
+            });
+        });
+    });
+    chain=chain.then(function(){
+        if(!resolved.length){
+            setPill('⚠️ 매칭된 선박 없음','rgba(239,68,68,.85)');
+            setTimeout(refreshSvFleetStatus,3000);
+            return;
+        }
+        setPill('📤 0 / '+resolved.length+' 등록 중…','rgba(124,58,237,.9)');
+        var BATCH=50, regDone=0, regErrs=0;
+        var c2=Promise.resolve();
+        for(var i=0;i<resolved.length;i+=BATCH){
+            (function(batch){
+                c2=c2.then(function(){
+                    return callSV('sv_register',{},{method:'POST',body:batch}).then(function(){
+                        regDone+=batch.length;
+                        setPill('📤 '+regDone+' / '+resolved.length+' 등록 중…');
+                    }).catch(function(){regErrs++;});
+                });
+            })(resolved.slice(i,i+BATCH));
+        }
+        return c2.then(function(){
+            setPill('✓ '+regDone+'척 등록 완료 · 위치 로드 중…','rgba(16,185,129,.85)');
+            return autoLoadSvFleet();
+        }).then(function(){
+            setTimeout(refreshSvFleetStatus,1500);
+        });
+    });
+}
+
 // Silent auto-loader fired from showApp() and on a 5-min timer. Differs from
 // loadSvFleetToMap() in that it doesn't touch the Admin Panel status UI — it
 // just refreshes markers in the background. Skips when proxy isn't configured

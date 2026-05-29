@@ -223,6 +223,33 @@ Don't pile session diaries into this file — it should stay evergreen. For per-
 
 ## 10. Recent work log (append-only, newest first)
 
+### 2026-05-29 — One-click fleet sync from header pill (simplification)
+**User report**: "복잡하다. 내 프로그램에 등록된 선박 위치를 보고싶다."
+
+The earlier Admin Panel → Load Fleet flow worked but was buried and required understanding the register-then-view dependency. Replaced with a single header pill that auto-evaluates state and acts.
+
+UX states ([delay_dashboard.html `#svFleetStatus`](delay_dashboard.html)):
+
+| State | Pill text | Action on click |
+|---|---|---|
+| Not configured | `⚙️ SeaVantage 설정` (yellow) | Opens Admin Panel |
+| Synced (≥95%) | `🛰️ N척 추적 중` (green) | Refresh positions |
+| Coverage gap | `🚢 R / T척 · 탭하여 일괄 등록 (~Nm)` (purple) | One-click sync |
+| Connection failure | `⚠️ 연결 실패` (red) | Opens Admin Panel |
+
+`syncAllFleet(missingImos)` is the one-shot register-and-show:
+1. `sv_search` per IMO → resolve to shipId UUID
+2. Batch `sv_register` 50 at a time
+3. `autoLoadSvFleet()` to refresh map markers
+
+Progress shown inline in the pill (`🔍 N/M 검색 중…` → `📤 N/M 등록 중…` → `✓ N척 등록 완료`).
+
+Target list = `Object.values(VESSELS).flatMap(svc=>svc.map(v=>v.imo))` ∪ `data/sched-non-own.json` IMOs. Currently 71 own + 528 charter ≈ 599 unique target IMOs vs ~23 currently registered = ~576 to bulk register.
+
+Logging into the dashboard now:
+- Pill appears in the header within ~1s of map init.
+- One click handles everything; user never sees the underlying register-vs-snapshot mechanism.
+
 ### 2026-05-29 — Auto-load SeaVantage fleet on login (no manual click)
 **User report**: "전혀 화면이 바뀌지 않았다. 자사선 위치가 다 표시되는것으로 알고있다."
 
