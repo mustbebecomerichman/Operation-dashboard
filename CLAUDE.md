@@ -223,6 +223,35 @@ Don't pile session diaries into this file — it should stay evergreen. For per-
 
 ## 10. Recent work log (append-only, newest first)
 
+### 2026-05-28 — VESSELS rebuild from HAL/SKR + Schedule cross-reference
+**Problem**: 30 of 76 routes had an empty VESSELS[svc] list — the "Vessels" tab and route detail panel showed no ships for them. User had uploaded the matching Excel files but the data wasn't being used.
+
+**Inputs:**
+- `Vessel Code_HAL_2026-04-02.xls` (24 vessels, Heung-A Line own fleet)
+- `Vessel Code_SKR_2026-04-02.xls` (52 vessels, Sinokor Marine own fleet)
+- `Schedule Code_2026-03-31.xls` (last-month vessel ↔ service assignments)
+
+**Approach** (`scripts/rebuild-vessels.py`):
+1. Parse HAL+SKR master = 70 unique own vessels with full info (code/name/IMO/GT/DWT/TEU/LOA/flag/built/call).
+2. Parse Schedule Code → vessel → set of services they ran on (63 vessels, avg 3.1 services each).
+3. **Union of three sources** so nothing is lost:
+   - Schedule Code last-month assignments (live truth)
+   - T/C SVC primary service column (contract baseline)
+   - Existing VESSELS entries (manual curation history)
+4. Pass 2: preserve any code in old VESSELS not in HAL/SKR master (in case of manually-entered 용선/charter entries).
+
+**Result**:
+- VESSELS: 49 services / 74 entries → **58 services / 195 entries**
+- 4 newly-filled routes: BSS2, NSC, SGX2, SIS
+- 26 still empty (e.g. NWX, TIS2, CIX2) — legitimately slot-share / chartered-only routes; their vessels are in the 488-record `data/sched-non-own.json` for SeaVantage bulk registration.
+- Example: PCI now lists 11 vessels (was 1), KST lists 4 (was 1).
+
+Regeneration:
+```bash
+python scripts/rebuild-vessels.py
+```
+Re-run on every HAL/SKR/Schedule Code drop. Existing VESSELS entries are preserved during merge (no data loss).
+
 ### 2026-05-28 — SeaVantage API permission granted (partial scope)
 SeaVantage activated API access on the account. End-to-end test from this repo:
 
